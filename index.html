@@ -354,7 +354,8 @@ const Graph = {
                 target: l.targetId
             }));
         } else {
-            this.nodes = [{ id: 1, label: "Origin", x: 0, y: 0 }];
+            // Инициализация без стартовой ноды, ждем действий пользователя
+            this.nodes = [];
             this.links = [];
         }
         
@@ -396,9 +397,14 @@ const Graph = {
         const newNode = { id: Date.now(), label: label, x: x, y: y };
         
         this.nodes.push(newNode);
-        if (parent) {
+        
+        // --- FIXED LOGIC HERE ---
+        // Проверяем, что родитель существует И является нодой (имеет ID)
+        if (parent && parent.id) {
             this.links.push({ source: parent.id, target: newNode.id, id: `${parent.id}-${newNode.id}` });
         }
+        // ------------------------
+        
         this.selected = newNode;
         this.updateTopology();
         Input.updateUI();
@@ -623,6 +629,7 @@ const UI = {
     notify(msg) {
         const el = document.getElementById('notify');
         el.innerText = msg;
+        el.style.opacity = 1;
         el.style.opacity = 1;
         setTimeout(() => el.style.opacity = 0, 2000);
     }
