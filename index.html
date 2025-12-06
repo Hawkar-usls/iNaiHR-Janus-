@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#05000a">
+    <title>iNaiHR: KERNEL 4.0</title>
+    
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Orbitron:wght@600;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-dark: #05000a;
+            --c-primary: #d300ff;
+            --c-accent: #00e5ff;
+            --c-white: #e0ccff;
+            --c-red: #ff2a6d;
+            --glass: rgba(20, 0, 40, 0.6);
+            --border: rgba(211, 0, 255, 0.25);
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background-color: var(--bg-dark);
+            font-family: 'Rajdhani', sans-serif; color: var(--c-white);
+            user-select: none; -webkit-user-select: none;
+        }
+
+        /* LAYERS */
+        #neural-bg {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 50% 50%, #120024, #000);
+            z-index: 0; pointer-events: none;
+        }
+        
+        canvas {
+            position: absolute; top: 0; left: 0; z-index: 1;
+            outline: none; -webkit-tap-highlight-color: transparent;
+        }
+
+        /* UI OVERLAY */
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10; pointer-events: none;
+        }
+        .pointer-events-auto { pointer-events: auto; }
+
+        /* LOGO & STATUS */
+        #status-bar {
+            position: absolute; top: 20px; left: 20px;
+            font-family: 'Orbitron'; font-size: 14px; letter-spacing: 2px;
+            color: rgba(255,255,255,0.3); text-shadow: 0 0 10px rgba(211,0,255,0.2);
+        }
+        #status-bar span { color: var(--c-accent); }
+
+        /* CONTROLS */
+        .control-group {
+            position: absolute; top: 20px; right: 20px;
+            display: flex; gap: 10px;
+        }
+        .btn {
+            background: var(--glass); border: 1px solid var(--border);
+            color: var(--c-primary); padding: 8px 16px;
+            font-family: 'Orbitron'; font-size: 12px; font-weight: 700;
+            backdrop-filter: blur(10px); cursor: pointer; transition: 0.2s;
+        }
+        .btn:active { background: var(--c-primary); color: #000; }
+        .btn:disabled { filter: grayscale(1); opacity: 0.5; }
+
+        /* FAB */
+        #fab {
+            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+            width: 70px; height: 70px; border-radius: 50%;
+            background: radial-gradient(circle, #2a003b, #000);
+            border: 1px solid var(--border); box-shadow: 0 0 30px rgba(211, 0, 255, 0.2);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 30px; color: var(--c-primary); transition: 0.3s;
+            cursor: pointer; pointer-events: auto;
+        }
+        #fab.mode-edit { border-color: var(--c-accent); color: var(--c-accent); box-shadow: 0 0 40px rgba(0, 229, 255, 0.3); }
+        #fab:active { transform: translateX(-50%) scale(0.9); }
+
+        /* MODALS */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 100; display: none;
+            align-items: center; justify-content: center; backdrop-filter: blur(5px);
+            pointer-events: auto;
+        }
+        .modal-box {
+            width: 80%; max-width: 300px; padding: 20px;
+            background: #0a0014; border: 1px solid var(--c-primary);
+            box-shadow: 0 0 50px rgba(211,0,255,0.1); text-align: center;
+        }
+        input {
+            width: 100%; background: transparent; border: none;
+            border-bottom: 2px solid var(--c-primary); color: var(--c-white);
+            font-family: 'Orbitron'; font-size: 20px; text-align: center;
+            padding: 10px 0; outline: none; margin-bottom: 20px;
+        }
+
+        /* NOTIFICATIONS */
+        #notify {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-family: 'Orbitron'; font-size: 24px; color: var(--c-accent);
+            text-shadow: 0 0 20px var(--c-accent); opacity: 0; transition: 0.3s;
+            pointer-events: none; z-index: 1000; text-align: center; width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="neural-bg"></div>
+    <canvas id="canvas"></canvas>
+
+    <div id="ui-layer">
+        <div id="status-bar">iNaiHR <span>KERNEL 4.0</span> <span id="node-count">[0 NODES]</span></div>
+        
+        <div class="control-group pointer-events-auto">
+            <button class="btn" id="btn-synth" onclick="AI.synth()">SYNTH</button>
+            <button class="btn" onclick="DB.wipe()">WIPE</button>
+        </div>
+
+        <button id="fab" class="pointer-events-auto" onmousedown="Input.handleFabStart()" onmouseup="Input.handleFabEnd()" ontouchstart="Input.handleFabStart()" ontouchend="Input.handleFabEnd()">+</button>
+    </div>
+
+    <div id="notify">SYSTEM READY</div>
+
+    <div id="modal-rename" class="modal">
+        <div class="modal-box">
+            <input type="text" id="inp-rename" placeholder="DATA..." autocomplete="off">
+            <button class="btn" style="width:100%" onclick="Input.submitRename()">CONFIRM</button>
+        </div>
+    </div>
+
+<script>
+/**
+ * SYSTEM CONFIGURATION
+ */
+const CONFIG = {
+    apiKey: "AIzaSyCwS8chuQviq2mKlkrMK3QBe0El2DvQeHY", // REPLACE IF NEEDED
+    colors: {
+        node: "#d300ff",
+        nodeSelected: "#00e5ff",
+        text: "#e0ccff",
+        link: "rgba(211, 0, 255, 0.15)",
+        grid: "rgba(211, 0, 255, 0.03)"
+    },
+    physics: {
+        charge: -500,
+        dist: 120,
+        collide: 40
+    }
+};
+
+/**
+ * MODULE 1: STORAGE CORE (IndexedDB Wrapper)
+ * "Картотека вместо коробки"
+ */
+const DB = {
+    db: null,
+    name: 'iNaiHR_DB_v2',
+    
+    async init() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.name, 1);
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains('nodes')) db.createObjectStore('nodes', { keyPath: 'id' });
+                if (!db.objectStoreNames.contains('links')) db.createObjectStore('links', { keyPath: 'id' });
+            };
+            request.onsuccess = (e) => {
+                this.db = e.target.result;
+                console.log("%c[DB] ONLINE", "color: #00e5ff");
+                resolve();
+            };
+            request.onerror = (e) => reject(e);
+        });
+    },
+
+    async saveGraph() {
+        if (!this.db) return;
+        const tx = this.db.transaction(['nodes', 'links'], 'readwrite');
+        
+        // Save Nodes (map to plain object)
+        const nodeStore = tx.objectStore('nodes');
+        Graph.nodes.forEach(n => nodeStore.put({
+            id: n.id, label: n.label, x: n.x, y: n.y, isAI: n.isAI
+        }));
+        
+        // Save Links
+        const linkStore = tx.objectStore('links');
+        Graph.links.forEach(l => linkStore.put({
+            id: `${l.source.id}-${l.target.id}`,
+            sourceId: l.source.id,
+            targetId: l.target.id
+        }));
+    },
+
+    async loadGraph() {
+        return new Promise((resolve) => {
+            if (!this.db) resolve(null);
+            const tx = this.db.transaction(['nodes', 'links'], 'readonly');
+            const nodesReq = tx.objectStore('nodes').getAll();
+            const linksReq = tx.objectStore('links').getAll();
+            
+            tx.oncomplete = () => {
+                if (nodesReq.result.length === 0) resolve(null);
+                else resolve({ nodes: nodesReq.result, links: linksReq.result });
+            };
+        });
+    },
+
+    wipe() {
+        if(confirm("FORMAT NEURAL STORAGE?")) {
+            const req = indexedDB.deleteDatabase(this.name);
+            req.onsuccess = () => location.reload();
+        }
+    }
+};
+
+/**
+ * MODULE 2: RENDER CORE (Canvas + D3 Force)
+ * "Отказ от DOM в пользу Холста"
+ */
+const Render = {
+    canvas: document.getElementById('canvas'),
+    ctx: document.getElementById('canvas').getContext('2d'),
+    width: window.innerWidth,
+    height: window.innerHeight,
+    transform: d3.zoomIdentity,
+    
+    init() {
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+        
+        // D3 Zoom behavior attached to canvas
+        d3.select(this.canvas).call(d3.zoom()
+            .scaleExtent([0.1, 5])
+            .on("zoom", (e) => {
+                this.transform = e.transform;
+                this.requestDraw();
+            })
+            .on("start", () => { /* optional: hide heavy elements */ })
+            .on("end", () => { /* optional: show heavy elements */ })
+        ).on("dblclick.zoom", null); // Disable double click zoom
+    },
+
+    resize() {
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
+        // Retina Display Support
+        const dpr = window.devicePixelRatio || 1;
+        this.canvas.width = this.width * dpr;
+        this.canvas.height = this.height * dpr;
+        this.ctx.scale(dpr, dpr);
+        this.requestDraw();
+    },
+
+    requestDraw() {
+        requestAnimationFrame(() => this.draw());
+    },
+
+    draw() {
+        const ctx = this.ctx;
+        const t = this.transform;
+        
+        // Clear
+        ctx.clearRect(0, 0, this.width, this.height);
+        
+        ctx.save();
+        ctx.translate(t.x, t.y);
+        ctx.scale(t.k, t.k);
+
+        // 1. Draw Grid (Optional Performance Cost)
+        this.drawGrid(ctx, t);
+
+        // 2. Draw Links
+        ctx.beginPath();
+        ctx.strokeStyle = CONFIG.colors.link;
+        ctx.lineWidth = 1.5;
+        Graph.links.forEach(l => {
+            ctx.moveTo(l.source.x, l.source.y);
+            ctx.lineTo(l.target.x, l.target.y);
+        });
+        ctx.stroke();
+
+        // 3. Draw Nodes
+        Graph.nodes.forEach(n => {
+            const isSel = (n === Graph.selected);
+            const r = 35 + (n.weight || 0) * 2; // Dynamic radius
+
+            // Aura (Glow)
+            if (isSel) {
+                ctx.beginPath();
+                ctx.arc(n.x, n.y, r + 5, 0, Math.PI * 2);
+                ctx.fillStyle = "rgba(0, 229, 255, 0.1)";
+                ctx.fill();
+                ctx.strokeStyle = CONFIG.colors.nodeSelected;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+
+            // Core
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, 8, 0, Math.PI * 2); // Small core
+            ctx.fillStyle = "#000";
+            ctx.fill();
+            ctx.strokeStyle = isSel ? CONFIG.colors.nodeSelected : (n.isAI ? "#fff" : CONFIG.colors.node);
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Label (Text) - Optimization: Don't draw text if zoomed out too far
+            if (t.k > 0.4) {
+                ctx.font = `600 12px "Orbitron"`;
+                ctx.fillStyle = isSel ? CONFIG.colors.nodeSelected : "rgba(224, 204, 255, 0.6)";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(n.label, n.x, n.y + 20);
+            }
+        });
+
+        ctx.restore();
+    },
+
+    drawGrid(ctx, t) {
+        // Simple Infinite Grid logic
+        const gridSize = 100;
+        const w = this.width / t.k;
+        const h = this.height / t.k;
+        const offX = -t.x / t.k;
+        const offY = -t.y / t.k;
+        
+        ctx.beginPath();
+        ctx.strokeStyle = CONFIG.colors.grid;
+        ctx.lineWidth = 1;
+
+        const startX = Math.floor(offX / gridSize) * gridSize;
+        const startY = Math.floor(offY / gridSize) * gridSize;
+
+        for (let x = startX; x < offX + w; x += gridSize) {
+            ctx.moveTo(x, offY); ctx.lineTo(x, offY + h);
+        }
+        for (let y = startY; y < offY + h; y += gridSize) {
+            ctx.moveTo(offX, y); ctx.lineTo(offX + w, y);
+        }
+        ctx.stroke();
+    }
+};
+
+/**
+ * MODULE 3: LOGIC KERNEL (Graph State & AI)
+ * "Впрыск контекста"
+ */
+const Graph = {
+    nodes: [],
+    links: [], // In D3 Force, links are objects {source: nodeObj, target: nodeObj}
+    nodeMap: new Map(), // Fast lookup by ID
+    selected: null,
+    simulation: null,
+
+    init(data) {
+        if (data) {
+            this.nodes = data.nodes;
+            // Reconstruct links with IDs
+            this.links = data.links.map(l => ({
+                id: l.id,
+                source: l.sourceId, 
+                target: l.targetId
+            }));
+        } else {
+            this.nodes = [{ id: 1, label: "Origin", x: 0, y: 0 }];
+            this.links = [];
+        }
+        
+        this.rebuildMap();
+        this.initSimulation();
+        this.updateStats();
+    },
+
+    rebuildMap() {
+        this.nodeMap.clear();
+        this.nodes.forEach(n => this.nodeMap.set(n.id, n));
+    },
+
+    initSimulation() {
+        this.simulation = d3.forceSimulation(this.nodes)
+            .force("link", d3.forceLink(this.links).id(d => d.id).distance(CONFIG.physics.dist))
+            .force("charge", d3.forceManyBody().strength(CONFIG.physics.charge))
+            .force("collide", d3.forceCollide(CONFIG.physics.collide))
+            .on("tick", () => Render.requestDraw());
+    },
+
+    updateTopology() {
+        // Topology update needs to re-bind arrays to simulation
+        this.simulation.nodes(this.nodes);
+        this.simulation.force("link").links(this.links);
+        this.simulation.alpha(1).restart();
+        this.rebuildMap();
+        DB.saveGraph(); // Auto-save on topology change
+        this.updateStats();
+        Render.requestDraw();
+    },
+
+    updateStats() {
+        document.getElementById('node-count').innerText = `[${this.nodes.length} NODES]`;
+    },
+
+    // CRUD
+    addNode(parent, label = "Void") {
+        const x = parent ? parent.x + (Math.random()-0.5)*50 : 0;
+        const y = parent ? parent.y + (Math.random()-0.5)*50 : 0;
+        const newNode = { id: Date.now(), label: label, x: x, y: y };
+        
+        this.nodes.push(newNode);
+        if (parent) {
+            this.links.push({ source: parent.id, target: newNode.id, id: `${parent.id}-${newNode.id}` });
+        }
+        this.selected = newNode;
+        this.updateTopology();
+        Input.updateUI();
+        return newNode;
+    },
+
+    deleteNode(node) {
+        if (!node) return;
+        this.nodes = this.nodes.filter(n => n.id !== node.id);
+        this.links = this.links.filter(l => l.source.id !== node.id && l.target.id !== node.id);
+        this.selected = null;
+        this.updateTopology();
+        Input.updateUI();
+    },
+
+    // --- AI CONTEXT INJECTION ---
+    getAIContext(node) {
+        // Find neighbors
+        const neighbors = this.links
+            .filter(l => l.source.id === node.id || l.target.id === node.id)
+            .map(l => (l.source.id === node.id ? l.target : l.source));
+        
+        const neighborLabels = neighbors.map(n => n.label).join(", ");
+        
+        // In a real tree, we'd trace back to root, but here we just take local context
+        return `
+        CONTEXT:
+        Current Node: "${node.label}"
+        Connected Neighbors: [${neighborLabels}]
+        Goal: Expand this specific concept branch.
+        `;
+    }
+};
+
+/**
+ * MODULE 4: AI INTERFACE
+ */
+const AI = {
+    async synth() {
+        const node = Graph.selected;
+        if (!node) { UI.notify("SELECT NODE"); return; }
+        
+        const btn = document.getElementById('btn-synth');
+        btn.disabled = true; btn.innerText = "COMPUTING...";
+        
+        const contextBlock = Graph.getAIContext(node);
+        
+        const prompt = `
+        ${contextBlock}
+        TASK:
+        Generate 3 distinct, concrete child concepts for the Current Node based on the Context.
+        Output ONLY valid JSON format:
+        [
+            {"text": "Concept 1", "emoji": "🔹"},
+            {"text": "Concept 2", "emoji": "🔸"},
+            {"text": "Concept 3", "emoji": "🔻"}
+        ]
+        `;
+
+        try {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${CONFIG.apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+
+            const data = await response.json();
+            const rawText = data.candidates[0].content.parts[0].text;
+            const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const results = JSON.parse(cleanJson);
+
+            results.forEach((item, i) => {
+                setTimeout(() => {
+                    const n = Graph.addNode(node, `${item.emoji} ${item.text}`);
+                    n.isAI = true;
+                }, i * 150);
+            });
+            UI.notify(`SYNTH COMPLETE: ${results.length} NODES`);
+
+        } catch (e) {
+            console.error(e);
+            UI.notify("NEURAL LINK FAILED");
+        } finally {
+            btn.disabled = false; btn.innerText = "SYNTH";
+        }
+    }
+};
+
+/**
+ * MODULE 5: INPUT & INTERACTION
+ */
+const Input = {
+    dragSubject() {
+        // Custom hit detection for D3 Drag on Canvas
+        const t = Render.transform;
+        // Inverse transform mouse to world
+        let mouseX = d3.event.x; 
+        let mouseY = d3.event.y;
+        
+        // Need raw coordinates relative to canvas, handling standard D3 logic is tricky with canvas transform
+        // Simpler: find closest node to transformed mouse pointer
+        // Note: d3.drag on canvas usually needs the 'subject' to be defined
+    },
+    
+    // Simplification: We handle clicks manually, and use D3 drag behavior
+    init() {
+        const canvas = d3.select("#canvas");
+        
+        // CLICK / TAP
+        canvas.on("click", (event) => {
+            const [mx, my] = d3.pointer(event);
+            const t = Render.transform;
+            const wx = (mx - t.x) / t.k; // World X
+            const wy = (my - t.y) / t.k; // World Y
+            
+            // Find Node
+            const clickedNode = Graph.nodes.find(n => {
+                const dx = n.x - wx;
+                const dy = n.y - wy;
+                return Math.sqrt(dx*dx + dy*dy) < 20; // 20px hit radius
+            });
+
+            if (clickedNode) {
+                Graph.selected = clickedNode;
+                this.updateUI();
+            } else {
+                Graph.selected = null;
+                this.updateUI();
+            }
+            Render.requestDraw();
+        });
+
+        // DRAG
+        canvas.call(d3.drag()
+            .subject((event) => {
+                const t = Render.transform;
+                const wx = (event.x - t.x) / t.k;
+                const wy = (event.y - t.y) / t.k;
+                return Graph.nodes.find(n => {
+                    const dx = n.x - wx;
+                    const dy = n.y - wy;
+                    return Math.sqrt(dx*dx + dy*dy) < 30;
+                });
+            })
+            .on("start", (event) => {
+                if (!event.active) Graph.simulation.alphaTarget(0.3).restart();
+                event.subject.fx = event.subject.x;
+                event.subject.fy = event.subject.y;
+                Graph.selected = event.subject; // Select on drag
+                Input.updateUI();
+            })
+            .on("drag", (event) => {
+                event.subject.fx = event.x;
+                event.subject.fy = event.y;
+            })
+            .on("end", (event) => {
+                if (!event.active) Graph.simulation.alphaTarget(0);
+                event.subject.fx = null;
+                event.subject.fy = null;
+                DB.saveGraph();
+            })
+        );
+    },
+
+    // UI LOGIC
+    fabTimer: null,
+    handleFabStart() {
+        const fab = document.getElementById('fab');
+        if (Graph.selected) {
+            // Holding delete
+            fab.style.backgroundColor = "var(--c-red)";
+            this.fabTimer = setTimeout(() => {
+                Graph.deleteNode(Graph.selected);
+                UI.notify("NODE DELETED");
+                fab.style.backgroundColor = "";
+            }, 800);
+        } else {
+            fab.style.transform = "translateX(-50%) scale(0.9)";
+        }
+    },
+    handleFabEnd() {
+        clearTimeout(this.fabTimer);
+        const fab = document.getElementById('fab');
+        fab.style.backgroundColor = "";
+        fab.style.transform = "";
+        
+        if (Graph.selected) {
+            // Edit
+            this.openRename();
+        } else {
+            // Create New
+            // Find center of screen in world coords
+            const t = Render.transform;
+            const cx = (Render.width/2 - t.x)/t.k;
+            const cy = (Render.height/2 - t.y)/t.k;
+            
+            const n = Graph.addNode({x:cx, y:cy}, "Void");
+            Graph.selected = n;
+            this.updateUI();
+            setTimeout(() => this.openRename(), 50);
+        }
+    },
+
+    updateUI() {
+        const fab = document.getElementById('fab');
+        const synth = document.getElementById('btn-synth');
+        
+        if (Graph.selected) {
+            fab.className = "pointer-events-auto mode-edit";
+            fab.innerText = "✎";
+            synth.style.opacity = "1";
+        } else {
+            fab.className = "pointer-events-auto";
+            fab.innerText = "+";
+            synth.style.opacity = "0.3";
+        }
+        Render.requestDraw();
+    },
+
+    openRename() {
+        const modal = document.getElementById('modal-rename');
+        const inp = document.getElementById('inp-rename');
+        inp.value = Graph.selected.label === "Void" ? "" : Graph.selected.label;
+        modal.style.display = "flex";
+        inp.focus();
+    },
+
+    submitRename() {
+        const inp = document.getElementById('inp-rename');
+        const modal = document.getElementById('modal-rename');
+        if (Graph.selected) {
+            Graph.selected.label = inp.value || "Void";
+            Graph.updateTopology();
+        }
+        modal.style.display = "none";
+        Render.requestDraw();
+    }
+};
+
+const UI = {
+    notify(msg) {
+        const el = document.getElementById('notify');
+        el.innerText = msg;
+        el.style.opacity = 1;
+        setTimeout(() => el.style.opacity = 0, 2000);
+    }
+};
+
+// BOOTSTRAP
+(async function Boot() {
+    await DB.init();
+    const data = await DB.loadGraph();
+    
+    Render.init();
+    Graph.init(data);
+    Input.init();
+    
+    // Wait for fonts to ensure text renders correctly on canvas
+    document.fonts.ready.then(() => Render.requestDraw());
+})();
+
+</script>
+</body>
+</html>
