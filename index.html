@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#05000a">
-    <title>iNaiHR: KERNEL</title>
+    <title>iNaiHR: JANUS NEXUS</title>
     
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Orbitron:wght@600;700;900&display=swap" rel="stylesheet">
@@ -13,608 +13,487 @@
     <style>
         :root {
             --bg-dark: #05000a;
+            --bg-pulse: #120024;
+            
+            /* CYBER PALETTE */
             --c-primary: #d300ff;
             --c-accent: #00e5ff;
             --c-white: #e0ccff;
             --c-red: #ff2a6d;
-            --glass: rgba(10, 0, 20, 0.9);
-            --border: rgba(211, 0, 255, 0.4);
+            
+            --neuron-core: var(--c-primary);
+            --neuron-aura: #9d00ff;
+            --synapse-off: rgba(211, 0, 255, 0.2);
+            --grid-line: rgba(211, 0, 255, 0.08);
+            --glass-border: rgba(211, 0, 255, 0.25);
         }
 
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
             overflow: hidden; background-color: var(--bg-dark);
             font-family: 'Rajdhani', sans-serif; color: var(--c-white);
-            user-select: none; -webkit-user-select: none;
+            -webkit-user-select: none; user-select: none; touch-action: none;
         }
 
+        /* ATMOSPHERE */
         #neural-bg {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle at 50% 50%, #1a002e, #000);
-            z-index: 0; pointer-events: none;
+            background: radial-gradient(circle at 50% 50%, var(--bg-pulse), var(--bg-dark));
+            z-index: 0; animation: pulse-bg 8s infinite alternate ease-in-out; pointer-events: none;
         }
-        
-        canvas {
-            position: absolute; top: 0; left: 0; z-index: 1;
-            outline: none; -webkit-tap-highlight-color: transparent;
+        @keyframes pulse-bg { 0% { opacity: 0.7; transform: scale(1); } 100% { opacity: 1; transform: scale(1.05); } }
+
+        #particles, #grid-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        #particles { z-index: 0; opacity: 0.5; }
+        #grid-bg {
+            background-image: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+            background-size: 50px 50px; opacity: 1; z-index: 1;
         }
+        .particle { position: absolute; background: var(--c-primary); border-radius: 50%; opacity: 0.6; animation: float 20s infinite linear; box-shadow: 0 0 10px var(--c-primary); }
+        @keyframes float { 0% { transform: translateY(0) translateX(0); opacity: 0; } 50% { opacity: 0.8; } 100% { transform: translateY(-100vh) translateX(20px); opacity: 0; } }
 
         /* UI */
-        #ui-layer {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 10; pointer-events: none;
+        .ui-element { transition: opacity 0.4s, transform 0.4s; }
+        
+        #logo {
+            position: absolute; top: 30px; left: 30px; z-index: 10;
+            font-family: 'Orbitron', sans-serif; font-size: 1.6rem; letter-spacing: 3px;
+            color: rgba(255,255,255,0.2); pointer-events: none;
+            text-shadow: 0 0 20px rgba(211, 0, 255, 0.2);
         }
-        .pointer-events-auto { pointer-events: auto; }
+        #logo span.i { color: var(--c-accent); }
+        #logo span.ai { color: var(--c-primary); text-shadow: 0 0 15px var(--c-primary); }
 
-        #status-bar {
-            position: absolute; top: 20px; left: 20px;
-            font-family: 'Orbitron'; font-size: 14px; letter-spacing: 2px;
-            color: rgba(255,255,255,0.4); text-shadow: 0 0 10px rgba(211,0,255,0.3);
+        /* BUTTONS */
+        .ui-group {
+            position: absolute; top: 40px; right: 30px; z-index: 10;
+            display: flex; gap: 10px;
         }
-        #status-bar span { color: var(--c-accent); font-weight: bold; }
+        .ui-btn {
+            background: rgba(20, 0, 40, 0.6); border: 1px solid var(--glass-border);
+            color: var(--c-primary); backdrop-filter: blur(12px);
+            padding: 8px 16px; border-radius: 4px;
+            font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 0.75rem;
+            cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        .ui-btn:active { transform: scale(0.95); color: white; border-color: white; }
+        
+        #btn-synth { border-color: var(--c-accent); color: #000; background: var(--c-accent); box-shadow: 0 0 20px rgba(0, 229, 255, 0.4); transition: 0.3s; opacity: 0.3; pointer-events: none; }
+        #btn-synth.active { opacity: 1; pointer-events: auto; }
+        #btn-synth:disabled { filter: grayscale(1); opacity: 0.5; }
+        #btn-synth.loading { animation: pulse-synth 1s infinite; }
+        @keyframes pulse-synth { 0% { box-shadow: 0 0 10px var(--c-accent); } 50% { box-shadow: 0 0 30px var(--c-accent); } 100% { box-shadow: 0 0 10px var(--c-accent); } }
 
-        .control-group {
-            position: absolute; top: 20px; right: 20px;
-            display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;
-            max-width: 300px;
+        /* MAIN ADD BUTTON */
+        #main-btn {
+            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+            width: 72px; height: 72px; z-index: 100; border-radius: 50%; border: none;
+            background: radial-gradient(circle at 50% 50%, rgba(40, 0, 60, 0.8), rgba(0,0,0,0.9));
+            box-shadow: 0 0 0 1px var(--glass-border), 0 0 40px rgba(211, 0, 255, 0.2);
+            backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.3s; -webkit-tap-highlight-color: transparent;
         }
-        .btn {
-            background: var(--glass); border: 1px solid var(--border);
-            color: var(--c-primary); padding: 8px 12px;
-            font-family: 'Orbitron'; font-size: 11px; font-weight: 700;
-            backdrop-filter: blur(5px); cursor: pointer; transition: 0.2s;
-            text-transform: uppercase; border-radius: 4px;
-        }
-        .btn:active { background: var(--c-primary); color: #000; transform: translateY(2px); }
-        .btn.active-mode { background: var(--c-accent); color: #000; border-color: #fff; box-shadow: 0 0 15px var(--c-accent); }
-        .btn:disabled { filter: grayscale(1); opacity: 0.5; }
-        .btn-danger { border-color: var(--c-red); color: var(--c-red); }
-        .hidden { display: none !important; }
+        #main-btn::after { content: '+'; font-size: 32px; font-weight: 300; color: var(--c-primary); text-shadow: 0 0 10px var(--c-primary); transition: 0.3s; }
+        #main-btn:active { transform: translateX(-50%) scale(0.9); }
+        
+        #main-btn.mode-edit { box-shadow: 0 0 0 2px var(--c-primary), 0 0 50px var(--c-primary); transform: translateX(-50%) rotate(360deg); }
+        #main-btn.mode-edit::after { content: '✎'; color: white; }
+        
+        #main-btn.holding-delete { background: rgba(60, 0, 20, 0.9); box-shadow: 0 0 0 2px var(--c-red), 0 0 60px var(--c-red); transform: translateX(-50%) scale(1.1); }
+        #main-btn.holding-delete::after { content: '×'; color: var(--c-red); text-shadow: 0 0 15px var(--c-red); }
 
-        /* FAB */
-        #fab {
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            width: 60px; height: 60px; border-radius: 50%;
-            background: #1a002e;
-            border: 2px solid var(--c-primary); 
-            box-shadow: 0 0 20px rgba(211, 0, 255, 0.3);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 32px; color: var(--c-primary); z-index: 20;
+        /* CHART */
+        #chart { position: relative; width: 100%; height: 100%; z-index: 2; }
+        .link { fill: none; stroke: var(--synapse-off); stroke-width: 1.5px; transition: stroke 0.3s; }
+        .impulse { filter: drop-shadow(0 0 5px var(--c-primary)); pointer-events: none; fill: white; }
+        .neuron-core { fill: #0a0014; stroke: var(--c-primary); stroke-width: 2px; filter: drop-shadow(0 0 8px var(--c-primary)); transition: r 0.3s, stroke 0.3s; }
+        .neuron-aura { fill: transparent; stroke: var(--neuron-aura); stroke-width: 1px; opacity: 0.3; filter: blur(4px); transition: stroke 0.3s; }
+        .hitbox { fill: transparent; cursor: pointer; }
+        .node-group.selected .neuron-core { stroke: var(--c-accent); filter: drop-shadow(0 0 15px var(--c-accent)); }
+        .node-group.selected .neuron-aura { opacity: 0.6; stroke: var(--c-accent); }
+        .node-group.ai-generated .neuron-core { stroke: var(--c-white); } 
+
+        text.label { font-family: 'Orbitron', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 1px; fill: rgba(224, 204, 255, 0.7); pointer-events: none; text-anchor: middle; text-shadow: 0 2px 5px #000; transition: fill 0.3s; }
+        .node-group.selected text.label { fill: var(--c-accent); text-shadow: 0 0 10px rgba(0, 229, 255, 0.5); }
+
+        /* MODALS */
+        .modal-backdrop {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); backdrop-filter: blur(10px);
+            z-index: 2000; display: none; align-items: center; justify-content: center;
+        }
+        .modal-content {
+            width: 85%; max-width: 320px; padding: 30px; text-align: center;
+            background: rgba(20, 0, 30, 0.95); border: 1px solid var(--c-primary); border-radius: 0px;
+            box-shadow: 0 0 50px rgba(211, 0, 255, 0.1);
+            clip-path: polygon(0 0, 100% 0, 100% 85%, 90% 100%, 0 100%);
+        }
+        #rename-input {
+            width: 100%; background: transparent; border: none; border-bottom: 2px solid var(--c-primary);
+            color: var(--c-accent); font-family: 'Orbitron', sans-serif; font-size: 1.4rem;
+            text-align: center; padding: 10px; outline: none; margin-bottom: 25px; border-radius: 0;
+        }
+        .modal-btn {
+            width: 100%; padding: 14px; margin-top: 5px; background: rgba(211, 0, 255, 0.1);
+            border: 1px solid var(--c-primary); color: var(--c-primary); cursor: pointer;
+            font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 1rem; letter-spacing: 2px;
             transition: 0.2s;
         }
-        #fab:active { transform: translateX(-50%) scale(0.9); background: var(--c-primary); color: #000; }
+        .modal-btn:active { background: var(--c-primary); color: black; }
 
-        /* MODAL */
-        .modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); z-index: 100; display: none;
-            align-items: center; justify-content: center; backdrop-filter: blur(4px);
-            pointer-events: auto;
-        }
-        .modal-box {
-            width: 85%; max-width: 320px; padding: 25px;
-            background: linear-gradient(135deg, #0f001a, #000); 
-            border: 1px solid var(--c-accent);
-            box-shadow: 0 0 50px rgba(0, 229, 255, 0.15); text-align: center;
-            border-radius: 8px;
-        }
-        .modal-title { font-family: 'Orbitron'; color: var(--c-accent); margin-bottom: 15px; font-size: 14px; }
-        input {
-            width: 100%; background: rgba(255,255,255,0.05); border: 1px solid #333;
-            border-bottom: 2px solid var(--c-accent); color: #fff;
-            font-family: 'Rajdhani'; font-size: 20px; font-weight: bold; text-align: center;
-            padding: 12px 0; outline: none; margin-bottom: 20px;
-        }
-        input:focus { background: rgba(0, 229, 255, 0.1); }
-
-        /* NOTIFY */
-        #notify {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            font-family: 'Orbitron'; font-size: 20px; color: var(--c-accent);
-            text-shadow: 0 0 10px var(--c-accent); opacity: 0; transition: 0.3s;
-            pointer-events: none; z-index: 1000; background: rgba(0,0,0,0.8);
-            padding: 10px 20px; border: 1px solid var(--c-accent);
-        }
+        #alert-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--c-accent); font-family: 'Orbitron'; font-size: 1.2rem; text-shadow: 0 0 20px var(--c-accent); pointer-events: none; opacity: 0; transition: opacity 0.5s; z-index: 3000; text-align: center; width: 80%; }
         
-        .hint {
-            position: absolute; bottom: 10px; width: 100%; text-align: center;
-            font-size: 10px; color: rgba(255,255,255,0.3); pointer-events: none;
+        #delete-hint {
+            position: absolute; bottom: 130px; 
+            left: 50%; transform: translateX(-50%); color: var(--c-red);
+            font-size: 0.85rem; letter-spacing: 2px; text-transform: uppercase;
+            opacity: 0; transition: 0.3s; pointer-events: none; font-weight: 700;
+            text-shadow: 0 0 15px rgba(255, 42, 109, 0.6);
+        }
+        #delete-hint.visible { opacity: 1; transform: translateX(-50%) translateY(-10px); }
+
+        @media (max-width: 768px) {
+            #logo { font-size: 1.2rem; top: 20px; left: 20px; }
+            .ui-group { top: 20px; right: 20px; gap: 8px; }
+            .ui-btn { padding: 8px 12px; font-size: 0.7rem; }
+            #main-btn { width: 64px; height: 64px; }
         }
     </style>
 </head>
 <body>
 
     <div id="neural-bg"></div>
-    <canvas id="canvas"></canvas>
+    <div id="particles"></div>
+    <div id="grid-bg"></div>
 
-    <div id="ui-layer">
-        <div id="status-bar">iNaiHR <span>NEXUS</span> <span id="node-count">[0]</span></div>
-        
-        <div class="control-group pointer-events-auto">
-            <button class="btn hidden" id="btn-link" onclick="Input.toggleLinkMode()">[LINK]</button>
-            <button class="btn hidden" id="btn-ren" onclick="Input.triggerRename()">EDIT</button>
-            <button class="btn btn-danger hidden" id="btn-del" onclick="Input.triggerDelete()">DEL</button>
-            
-            <div style="width: 1px; background: #333; margin: 0 2px;"></div>
-            
-            <button class="btn" id="btn-synth" onclick="AI.synth()">AI SYNTH</button>
-            <button class="btn" onclick="DB.wipe()">[WIPE]</button>
-        </div>
-
-        <button id="fab" class="pointer-events-auto" onclick="Input.handleFabClick()">+</button>
-        <div class="hint">DBL CLICK: Create | SHIFT+CLICK: Link | DRAG: Move</div>
+    <div id="logo" class="ui-element"><span class="i">i</span>N<span class="ai">ai</span>HR</div>
+    
+    <div class="ui-group ui-element">
+        <button id="btn-synth" class="ui-btn" onclick="synthAI()">AI SYNTH</button>
+        <button class="ui-btn" onclick="clearData()">WIPE</button>
     </div>
 
-    <div id="notify">SYSTEM READY</div>
+    <div id="alert-msg"></div>
+    <div id="delete-hint">DISCONNECTING...</div>
+    
+    <button id="main-btn" class="mode-add ui-element"></button>
 
-    <div id="modal-input" class="modal">
-        <div class="modal-box">
-            <div class="modal-title" id="modal-title">INPUT DATA</div>
-            <input type="text" id="inp-generic" autocomplete="off">
-            <div style="display:flex; gap:10px;">
-                <button class="btn" style="flex:1; border-color:var(--c-accent); color:var(--c-accent)" id="btn-confirm">OK</button>
-                <button class="btn" style="flex:1; border-color:#444; color:#888;" onclick="UI.closeModal()">CANCEL</button>
+    <div id="rename-modal" class="modal-backdrop">
+        <div class="modal-content">
+            <input type="text" id="rename-input" placeholder="INPUT DATA..." autocomplete="off">
+            <button class="modal-btn" onclick="saveRename()">INITIATE</button>
+        </div>
+    </div>
+
+    <div id="confirm-modal" class="modal-backdrop">
+        <div class="modal-content">
+            <div style="margin-bottom: 20px; font-family: 'Orbitron'; color: var(--c-red); letter-spacing: 1px;">WIPE SYSTEM DATA?</div>
+            <div style="display: flex; gap: 10px;">
+                <button class="modal-btn" onclick="confirmWipe(true)" style="border-color: var(--c-red); color: var(--c-red);">CONFIRM</button>
+                <button class="modal-btn" onclick="confirmWipe(false)">CANCEL</button>
             </div>
         </div>
     </div>
 
-<script>
-// === CONFIGURATION ===
-const CONFIG = {
-    endpoint: "http://localhost:5000/api/inaihr/generate",
-    colors: {
-        node: "#d300ff",
-        nodeSelected: "#00e5ff",
-        nodeAI: "#ffffff",
-        link: "rgba(211, 0, 255, 0.3)",
-        grid: "rgba(255, 255, 255, 0.03)"
-    },
-    physics: {
-        charge: -400,
-        dist: 150,
-        collide: 40
-    }
-};
+    <div id="chart"></div>
 
-// === DB CORE ===
-const DB = {
-    db: null,
-    name: 'iNaiHR_NoEmoji_v1', 
+<script>
+    // === CONFIGURATION ===
+    const API_ENDPOINT = "http://localhost:5000/api/inaihr/generate";
+    const isMobile = window.innerWidth < 768;
+    const PHYS = { linkDist: isMobile ? 90 : 140, charge: -400, collide: 25 };
+
+    function initParticles() {
+        const container = document.getElementById('particles');
+        for(let i=0; i<25; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            p.style.left = Math.random()*100+'%'; p.style.top = Math.random()*100+'%';
+            p.style.width = (Math.random()*2+1)+'px'; p.style.height = p.style.width;
+            p.style.animationDuration = (Math.random()*5+5)+'s';
+            p.style.animationDelay = -(Math.random()*10)+'s';
+            container.appendChild(p);
+        }
+    }
+    initParticles();
+
+    function loadData() {
+        const saved = localStorage.getItem('inaihr_v2_janus');
+        if (saved) { try { return JSON.parse(saved); } catch (e) { return null; } }
+        return null;
+    }
+    const initialData = loadData() || {
+        nodes: [ { id: 1, label: "Origin", x: window.innerWidth/2, y: window.innerHeight/2 } ],
+        links: []
+    };
+    let nodes = initialData.nodes;
+    let links = initialData.links;
+
+    const width = window.innerWidth, height = window.innerHeight;
+    let selectedNode = null; 
     
-    async init() {
-        return new Promise((resolve) => {
-            const req = indexedDB.open(this.name, 1);
-            req.onupgradeneeded = (e) => {
-                const db = e.target.result;
-                if (!db.objectStoreNames.contains('nodes')) db.createObjectStore('nodes', { keyPath: 'id' });
-                if (!db.objectStoreNames.contains('links')) db.createObjectStore('links', { keyPath: 'id' });
-            };
-            req.onsuccess = (e) => { this.db = e.target.result; resolve(); };
-            req.onerror = () => resolve(); 
+    const svg = d3.select("#chart").append("svg").attr("width", width).attr("height", height).attr("viewBox", [0, 0, width, height]);
+    const g = svg.append("g");
+    const linkGroup = g.append("g").attr("class", "links");
+    const impulseGroup = g.append("g").attr("class", "impulses");
+    const nodeGroup = g.append("g").attr("class", "nodes");
+
+    const zoom = d3.zoom().scaleExtent([0.1, 4]).on("zoom", (event) => g.attr("transform", event.transform));
+    svg.call(zoom).call(zoom.transform, d3.zoomIdentity.translate(width/2, height/2).scale(1).translate(-width/2, -height/2));
+    
+    svg.on("click", (event) => { if (event.target.tagName === 'svg') deselectNode(); });
+
+    const simulation = d3.forceSimulation(nodes)
+        .force("link", d3.forceLink(links).id(d => d.id).distance(PHYS.linkDist))
+        .force("charge", d3.forceManyBody().strength(PHYS.charge))
+        .force("collide", d3.forceCollide().radius(d => (d.radius||40)+10).iterations(2))
+        .force("x", d3.forceX(width/2).strength(0.01)) 
+        .force("y", d3.forceY(height/2).strength(0.01))
+        .alphaDecay(0.03);
+
+    // === AI LOGIC (LINKED TO JANUS CORE) ===
+    async function synthAI() {
+        if (!selectedNode) { showMsg("SELECT NODE FIRST"); return; }
+        
+        const btn = document.getElementById('btn-synth');
+        btn.disabled = true; btn.classList.add('loading'); btn.innerText = "JANUS LINK...";
+        
+        // Context for Janus
+        const context = `Current Node: "${selectedNode.label}".
+        Generate 4 related child concepts.
+        IMPORTANT: Assign a relevant EMOJI to every concept.
+        
+        OUTPUT FORMAT (JSON Array):
+        [
+            {"text": "Concept1", "emoji": "🧬"},
+            {"text": "Concept2", "emoji": "🔮"},
+            ...
+        ]`;
+
+        try {
+            const response = await fetch(API_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: context })
+            });
+            
+            if (!response.ok) throw new Error("Janus Connection Failed");
+
+            const results = await response.json();
+            
+            // Check validity
+            if (!Array.isArray(results)) throw new Error("Invalid Janus Data");
+
+            let angleStep = (Math.PI * 2) / results.length;
+            
+            results.forEach((item, i) => {
+                const angle = (Math.random() * 0.5) + (i * angleStep);
+                const dist = 140;
+                
+                // Combine Emoji + Text
+                const labelText = `${item.emoji || '🔹'} ${item.text}`;
+                
+                const newNode = {
+                    id: Date.now() + i,
+                    label: labelText,
+                    x: selectedNode.x + Math.cos(angle) * dist,
+                    y: selectedNode.y + Math.sin(angle) * dist,
+                    isAI: true
+                };
+                
+                nodes.push(newNode);
+                links.push({ source: selectedNode.id, target: newNode.id });
+                setTimeout(() => animateImpulse(selectedNode, newNode), i * 200);
+            });
+
+            updateTopology(); simulation.alpha(1).restart(); saveData();
+            showMsg(`JANUS GRANTED: ${results.length} NODES`);
+
+        } catch (e) { 
+            console.error(e); 
+            showMsg("JANUS OFFLINE"); 
+        } finally { 
+            btn.disabled = false; btn.classList.remove('loading'); btn.innerText = "AI SYNTH"; 
+        }
+    }
+
+    // === CONTROLS ===
+    const mainBtn = document.getElementById('main-btn');
+    const deleteHint = document.getElementById('delete-hint');
+    let pressTimer, isLongPress = false;
+
+    function handleBtnStart(e) {
+        if (e.type === 'touchstart') { e.stopPropagation(); }
+        if (selectedNode) {
+            isLongPress = false;
+            mainBtn.classList.add('holding-delete');
+            deleteHint.classList.add('visible');
+            if(navigator.vibrate) navigator.vibrate(50);
+            pressTimer = setTimeout(() => { 
+                isLongPress = true; deleteSelectedNode(); 
+                if(navigator.vibrate) navigator.vibrate([50,50]); 
+            }, 800);
+        } else { mainBtn.style.transform = "translateX(-50%) scale(0.9)"; }
+    }
+    
+    function handleBtnEnd(e) {
+        e.preventDefault(); clearTimeout(pressTimer);
+        mainBtn.classList.remove('holding-delete'); deleteHint.classList.remove('visible'); 
+        mainBtn.style.transform = "";
+        if (isLongPress) { isLongPress = false; return; }
+        if (selectedNode) openRename(); else createNewNode();
+        isLongPress = false;
+    }
+
+    mainBtn.addEventListener('mousedown', handleBtnStart); 
+    mainBtn.addEventListener('touchstart', handleBtnStart, {passive: false});
+    mainBtn.addEventListener('mouseup', handleBtnEnd); 
+    mainBtn.addEventListener('touchend', handleBtnEnd);
+
+    function createNewNode() {
+        const t = d3.zoomTransform(svg.node());
+        const x = (width/2 - t.x)/t.k; const y = (height/2 - t.y)/t.k;
+        const newNode = { id: Date.now(), label: "Void", x: x, y: y }; 
+        nodes.push(newNode);
+        selectedNode = newNode; 
+        updateButtonState(); updateTopology(); saveData(); 
+        setTimeout(openRename, 50); 
+    }
+
+    function deleteSelectedNode() {
+        if(!selectedNode) return;
+        nodes = nodes.filter(n => n.id !== selectedNode.id);
+        links = links.filter(l => l.source.id !== selectedNode.id && l.target.id !== selectedNode.id);
+        selectedNode = null; updateButtonState(); updateTopology(); saveData();
+    }
+
+    function handleNodeClick(event, d) {
+        if (event.defaultPrevented) return;
+        if (!selectedNode) { selectedNode = d; }
+        else if (selectedNode === d) { selectedNode = null; }
+        else {
+            const exists = links.some(l => (l.source.id===selectedNode.id && l.target.id===d.id) || (l.source.id===d.id && l.target.id===selectedNode.id));
+            if(!exists) { links.push({ source: selectedNode.id, target: d.id }); animateImpulse(selectedNode, d); }
+            selectedNode = d; 
+        }
+        updateButtonState(); updateTopology();
+    }
+
+    function updateButtonState() { 
+        const synthBtn = document.getElementById('btn-synth');
+        if(selectedNode) {
+            mainBtn.className = "ui-element mode-edit";
+            synthBtn.classList.add('active');
+        } else {
+            mainBtn.className = "ui-element mode-add";
+            synthBtn.classList.remove('active');
+        }
+    }
+
+    function deselectNode() { selectedNode = null; updateButtonState(); updateTopology(); }
+
+    function updateTopology() {
+        nodes.forEach(n => {
+            const c = links.filter(l => (l.source.id||l.source)===n.id || (l.target.id||l.target)===n.id).length;
+            n.radius = (35 + c * 4);
         });
-    },
-    async save() {
-        if (!this.db) return;
-        const tx = this.db.transaction(['nodes', 'links'], 'readwrite');
-        const nStore = tx.objectStore('nodes');
-        await nStore.clear();
-        Graph.nodes.forEach(n => nStore.put({
-            id: n.id, label: n.label, x: n.x, y: n.y, isAI: n.isAI
-        }));
-        const lStore = tx.objectStore('links');
-        await lStore.clear();
-        Graph.links.forEach(l => lStore.put({
-            id: l.id,
-            sourceId: l.source.id || l.source,
-            targetId: l.target.id || l.target
-        }));
-    },
-    async load() {
-        return new Promise((resolve) => {
-            if (!this.db) return resolve(null);
-            const tx = this.db.transaction(['nodes', 'links'], 'readonly');
-            const nReq = tx.objectStore('nodes').getAll();
-            const lReq = tx.objectStore('links').getAll();
-            tx.oncomplete = () => resolve({ nodes: nReq.result, links: lReq.result });
+
+        const link = linkGroup.selectAll("line").data(links, d => (d.source.id||d.source)+"-"+(d.target.id||d.target));
+        link.exit().remove(); link.enter().append("line").attr("class", "link").merge(link);
+
+        const node = nodeGroup.selectAll("g").data(nodes, d => d.id);
+        node.exit().transition().duration(300).style("opacity", 0).remove();
+        const nodeEnter = node.enter().append("g")
+            .call(d3.drag().on("start", dragStart).on("drag", dragged).on("end", dragEnd))
+            .on("click", handleNodeClick);
+
+        nodeEnter.append("circle").attr("class", "hitbox");
+        nodeEnter.append("circle").attr("class", "neuron-aura");
+        nodeEnter.append("circle").attr("class", "neuron-core");
+        nodeEnter.append("text").attr("class", "label").attr("dy", 0);
+
+        const allNodes = nodeEnter.merge(node);
+        allNodes.attr("class", d => `node-group ${d===selectedNode ? 'selected' : ''} ${d.isAI ? 'ai-generated' : ''}`);
+        allNodes.select("text").text(d => d.label);
+        
+        allNodes.select(".neuron-core").transition().duration(300).attr("r", d => d.radius * 0.3);
+        allNodes.select(".neuron-aura").transition().duration(300).attr("r", d => d.radius);
+        allNodes.select(".hitbox").attr("r", d => d.radius + 10);
+        allNodes.select("text.label").transition().duration(300).attr("dy", d => d.radius + 15);
+
+        simulation.nodes(nodes).on("tick", () => {
+            linkGroup.selectAll("line").attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+            allNodes.attr("transform", d => `translate(${d.x},${d.y})`);
         });
-    },
-    wipe() {
-        if(confirm("DESTROY ALL NEURAL DATA?")) {
-            indexedDB.deleteDatabase(this.name);
+        simulation.force("link").links(links);
+        simulation.alpha(0.5).restart();
+    }
+
+    function animateImpulse(source, target) {
+        const impulse = impulseGroup.append("circle").attr("class", "impulse").attr("r", 3).attr("cx", source.x).attr("cy", source.y).attr("fill", "#fff");
+        impulse.transition().duration(400).ease(d3.easeLinear).attr("cx", target.x).attr("cy", target.y).on("end", function() { d3.select(this).remove(); });
+    }
+    
+    function animateVisuals() {
+        d3.selectAll(".node-group").each(function(d) {
+            if(!d.phase) d.phase = Math.random()*100; d.phase+=0.05;
+            d3.select(this).select(".neuron-aura").attr("transform", `scale(${1+Math.sin(d.phase)*0.03})`);
+        });
+        requestAnimationFrame(animateVisuals);
+    }
+    animateVisuals();
+
+    function dragStart(e, d) { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; }
+    function dragged(e, d) { d.fx = e.x; d.fy = e.y; }
+    function dragEnd(e, d) { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; saveData(); }
+
+    function showMsg(txt) {
+        const el = document.getElementById('alert-msg'); el.innerText = txt; el.style.opacity = 1;
+        setTimeout(() => el.style.opacity = 0, 2000);
+    }
+    
+    const renameModal = document.getElementById('rename-modal'), input = document.getElementById('rename-input');
+    
+    function openRename() {
+        if(!selectedNode) return;
+        renameModal.style.display = 'flex';
+        if (selectedNode.label === "Void" || selectedNode.label === "") {
+            input.value = ""; input.placeholder = "INPUT DATA...";
+        } else {
+            input.value = selectedNode.label;
+        }
+        setTimeout(() => { input.focus(); if(input.value.length > 0) input.select(); }, 50);
+    }
+    
+    function saveRename() { 
+        if(selectedNode) { 
+            selectedNode.label = input.value.trim() || selectedNode.label; 
+            updateTopology(); saveData(); 
+        } 
+        renameModal.style.display='none'; 
+    }
+    input.addEventListener("keypress", (e) => { if(e.key === "Enter") saveRename(); });
+
+    function clearData() { 
+        document.getElementById('confirm-modal').style.display = 'flex';
+    }
+    
+    function confirmWipe(shouldWipe) {
+        document.getElementById('confirm-modal').style.display = 'none';
+        if(shouldWipe) {
+            localStorage.removeItem('inaihr_v2_janus');
             location.reload();
         }
     }
-};
 
-// === RENDER CORE ===
-const Render = {
-    canvas: document.getElementById('canvas'),
-    ctx: document.getElementById('canvas').getContext('2d'),
-    width: 0, height: 0,
-    transform: d3.zoomIdentity,
-    
-    init() {
-        this.resize();
-        window.addEventListener('resize', () => this.resize());
-        
-        d3.select(this.canvas).call(d3.zoom()
-            .scaleExtent([0.1, 4])
-            .on("zoom", (e) => {
-                this.transform = e.transform;
-                this.requestDraw();
-            })
-            .filter(event => !event.ctrlKey && !event.button) 
-        ).on("dblclick.zoom", null);
-    },
-    resize() {
-        const dpr = window.devicePixelRatio || 1;
-        this.width = window.innerWidth;
-        this.height = window.innerHeight;
-        this.canvas.width = this.width * dpr;
-        this.canvas.height = this.height * dpr;
-        this.ctx.scale(dpr, dpr);
-        this.requestDraw();
-    },
-    requestDraw() { requestAnimationFrame(() => this.draw()); },
-    
-    draw() {
-        const ctx = this.ctx;
-        const t = this.transform;
-        
-        ctx.clearRect(0, 0, this.width, this.height);
-        ctx.save();
-        ctx.translate(t.x, t.y);
-        ctx.scale(t.k, t.k);
-        
-        // Grid
-        this.drawGrid(ctx, t);
-        
-        // Links
-        ctx.beginPath();
-        ctx.strokeStyle = CONFIG.colors.link;
-        ctx.lineWidth = 1.5;
-        Graph.links.forEach(l => {
-            ctx.moveTo(l.source.x, l.source.y);
-            ctx.lineTo(l.target.x, l.target.y);
-        });
-        ctx.stroke();
-        
-        // Nodes
-        Graph.nodes.forEach(n => {
-            const isSel = (n === Graph.selected);
-            
-            // Glow
-            if (isSel) {
-                ctx.beginPath();
-                ctx.arc(n.x, n.y, 30, 0, Math.PI*2);
-                ctx.fillStyle = "rgba(0, 229, 255, 0.15)";
-                ctx.fill();
-                ctx.strokeStyle = CONFIG.colors.nodeSelected;
-                ctx.lineWidth = 1;
-                ctx.stroke();
-            }
-            
-            // Core
-            ctx.beginPath();
-            ctx.arc(n.x, n.y, 10, 0, Math.PI*2);
-            ctx.fillStyle = "#000";
-            ctx.fill();
-            ctx.strokeStyle = isSel ? CONFIG.colors.nodeSelected : (n.isAI ? CONFIG.colors.nodeAI : CONFIG.colors.node);
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            
-            // Label
-            if (t.k > 0.4) {
-                ctx.font = `600 12px "Orbitron"`;
-                ctx.fillStyle = isSel ? "#fff" : "rgba(255,255,255,0.6)";
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.fillText(n.label, n.x, n.y + 22);
-            }
-        });
-        
-        ctx.restore();
-    },
-    drawGrid(ctx, t) {
-        const sz = 100;
-        const w = this.width/t.k, h = this.height/t.k;
-        const ox = -t.x/t.k, oy = -t.y/t.k;
-        ctx.beginPath();
-        ctx.strokeStyle = CONFIG.colors.grid;
-        ctx.lineWidth = 1;
-        for(let x=Math.floor(ox/sz)*sz; x<ox+w; x+=sz) { ctx.moveTo(x, oy); ctx.lineTo(x, oy+h); }
-        for(let y=Math.floor(oy/sz)*sz; y<oy+h; y+=sz) { ctx.moveTo(ox, y); ctx.lineTo(ox+w, y); }
-        ctx.stroke();
+    function saveData() {
+        const cl = nodes.map(n => ({ id:n.id, label:n.label, x:n.x, y:n.y, isAI:n.isAI }));
+        const ln = links.map(l => ({ source:l.source.id||l.source, target:l.target.id||l.target }));
+        localStorage.setItem('inaihr_v2_janus', JSON.stringify({ nodes:cl, links:ln }));
     }
-};
 
-// === LOGIC KERNEL ===
-const Graph = {
-    nodes: [], links: [], nodeMap: new Map(),
-    selected: null, simulation: null,
-    
-    init(data) {
-        if (data) {
-            this.nodes = data.nodes;
-            this.links = data.links.map(l => ({
-                id: l.id, source: l.sourceId, target: l.targetId
-            }));
-        }
-        this.sim();
-        this.update();
-    },
-    
-    sim() {
-        this.simulation = d3.forceSimulation(this.nodes)
-            .force("link", d3.forceLink(this.links).id(d=>d.id).distance(CONFIG.physics.dist))
-            .force("charge", d3.forceManyBody().strength(CONFIG.physics.charge))
-            .force("collide", d3.forceCollide(CONFIG.physics.collide))
-            .on("tick", () => Render.requestDraw());
-    },
-    
-    update() {
-        this.simulation.nodes(this.nodes);
-        this.simulation.force("link").links(this.links);
-        this.simulation.alpha(1).restart();
-        this.nodeMap.clear();
-        this.nodes.forEach(n => this.nodeMap.set(n.id, n));
-        
-        document.getElementById('node-count').innerText = `[${this.nodes.length}]`;
-        DB.save();
-        Render.requestDraw();
-    },
-    
-    // CRUD
-    addNode(x, y, label, isAI=false) {
-        const n = { id: Date.now()+Math.random(), x, y, label, isAI };
-        this.nodes.push(n);
-        this.update();
-        return n;
-    },
-    
-    toggleLink(n1, n2) {
-        if (n1 === n2) return;
-        const existIdx = this.links.findIndex(l => 
-            (l.source === n1 && l.target === n2) || (l.source === n2 && l.target === n1)
-        );
-        
-        if (existIdx >= 0) {
-            this.links.splice(existIdx, 1);
-            UI.notify("LINK BROKEN");
-        } else {
-            this.links.push({ id: `${n1.id}-${n2.id}`, source: n1, target: n2 });
-            UI.notify("LINKED");
-        }
-        this.update();
-    },
-    
-    deleteNode(n) {
-        this.nodes = this.nodes.filter(x => x !== n);
-        this.links = this.links.filter(l => l.source !== n && l.target !== n);
-        this.selected = null;
-        this.update();
-        Input.updateUI();
-    },
-    
-    getAIContext(n) {
-        const neighbors = this.links
-            .filter(l => l.source === n || l.target === n)
-            .map(l => (l.source === n ? l.target : l.source));
-        return `NODE: "${n.label}"\nCONNECTED TO: [${neighbors.map(x=>x.label).join(", ")}]`;
-    }
-};
-
-// === INPUT SYSTEM ===
-const Input = {
-    isLinkMode: false,
-    
-    init() {
-        const cvs = d3.select("#canvas");
-        
-        // 1. Dragging
-        cvs.call(d3.drag()
-            .subject(e => {
-                const t = Render.transform;
-                const wx = (e.x - t.x)/t.k, wy = (e.y - t.y)/t.k;
-                return Graph.nodes.find(n => Math.hypot(n.x-wx, n.y-wy) < 30);
-            })
-            .on("start", e => {
-                if (!e.active) Graph.simulation.alphaTarget(0.3).restart();
-                e.subject.fx = e.subject.x;
-                e.subject.fy = e.subject.y;
-                Graph.selected = e.subject; 
-                Input.updateUI();
-            })
-            .on("drag", e => {
-                e.subject.fx = e.x;
-                e.subject.fy = e.y;
-            })
-            .on("end", e => {
-                if (!e.active) Graph.simulation.alphaTarget(0);
-                e.subject.fx = null; e.subject.fy = null;
-                DB.save();
-            })
-        );
-        
-        // 2. Click (Select / Link)
-        cvs.on("click", (e) => {
-            if (e.defaultPrevented) return; 
-            
-            const t = Render.transform;
-            const [mx, my] = d3.pointer(e);
-            const wx = (mx - t.x)/t.k, wy = (my - t.y)/t.k;
-            
-            const clicked = Graph.nodes.find(n => Math.hypot(n.x-wx, n.y-wy) < 30);
-            
-            if (clicked) {
-                if (Graph.selected && (e.shiftKey || Input.isLinkMode)) {
-                    Graph.toggleLink(Graph.selected, clicked);
-                    if (Input.isLinkMode) Input.toggleLinkMode(); 
-                } else {
-                    Graph.selected = clicked;
-                }
-            } else {
-                Graph.selected = null;
-            }
-            Input.updateUI();
-        });
-        
-        // 3. Double Click (Create)
-        cvs.on("dblclick", (e) => {
-            const t = Render.transform;
-            const [mx, my] = d3.pointer(e);
-            const wx = (mx - t.x)/t.k, wy = (my - t.y)/t.k;
-            
-            // Only create if empty space
-            if (!Graph.nodes.find(n => Math.hypot(n.x-wx, n.y-wy) < 30)) {
-                UI.openModal("CREATE NODE", (lbl) => {
-                    const n = Graph.addNode(wx, wy, lbl);
-                    Graph.selected = n;
-                    Input.updateUI();
-                });
-            }
-        });
-    },
-    
-    updateUI() {
-        const sel = Graph.selected;
-        document.getElementById('btn-link').classList.toggle('hidden', !sel);
-        document.getElementById('btn-ren').classList.toggle('hidden', !sel);
-        document.getElementById('btn-del').classList.toggle('hidden', !sel);
-        document.getElementById('btn-synth').style.opacity = sel ? "1" : "0.5";
-    },
-    
-    handleFabClick() {
-        if (Graph.selected) {
-            UI.openModal("ADD CHILD", (lbl) => {
-                const p = Graph.selected;
-                const c = Graph.addNode(p.x+(Math.random()-0.5)*50, p.y+50, lbl);
-                Graph.toggleLink(p, c);
-            });
-        } else {
-            // Simulate center click
-            const t = Render.transform;
-            UI.openModal("NEW ROOT", (lbl) => {
-                const n = Graph.addNode((Render.width/2 - t.x)/t.k, (Render.height/2 - t.y)/t.k, lbl);
-                Graph.selected = n;
-                Input.updateUI();
-            });
-        }
-    },
-    
-    toggleLinkMode() {
-        this.isLinkMode = !this.isLinkMode;
-        const btn = document.getElementById('btn-link');
-        if (this.isLinkMode) {
-            btn.classList.add('active-mode');
-            btn.innerText = "SELECT TARGET";
-            UI.notify("SELECT NODE TO LINK");
-        } else {
-            btn.classList.remove('active-mode');
-            btn.innerText = "[LINK]";
-        }
-    },
-    
-    triggerRename() {
-        if (!Graph.selected) return;
-        UI.openModal("RENAME", (val) => {
-            Graph.selected.label = val;
-            Graph.update();
-        }, Graph.selected.label);
-    },
-    
-    triggerDelete() {
-        if (Graph.selected && confirm("DELETE?")) Graph.deleteNode(Graph.selected);
-    }
-};
-
-// === AI SYSTEM ===
-const AI = {
-    async synth() {
-        if (!Graph.selected) return UI.notify("SELECT A NODE FIRST");
-        
-        const btn = document.getElementById('btn-synth');
-        btn.disabled = true; btn.innerText = "PROCESSING...";
-        
-        // --- STRICT PROMPT NO EMOJIS ---
-        const prompt = `
-        ${Graph.getAIContext(Graph.selected)}
-        TASK: Generate 3 related sub-concepts (JSON).
-        FORMAT: [{"text":"Name"}, ...]
-        CONSTRAINT: USE ONLY TEXT. NO EMOJIS. NO SYMBOLS.
-        `;
-        
-        try {
-            const res = await fetch(CONFIG.endpoint, {
-                method: 'POST',
-                headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ prompt })
-            });
-            if (!res.ok) throw new Error("API Fail");
-            
-            const arr = await res.json();
-            if (!Array.isArray(arr)) throw new Error("Bad Data");
-            
-            const parent = Graph.selected;
-            arr.forEach(item => {
-                // FORCE CLEAN TEXT
-                const cleanText = item.text.replace(/[^\x00-\x7Fа-яА-Я0-9 ]/g, "");
-                
-                const node = Graph.addNode(
-                    parent.x + (Math.random()-0.5)*150,
-                    parent.y + (Math.random()-0.5)*150,
-                    cleanText || "Node",
-                    true
-                );
-                Graph.toggleLink(parent, node);
-            });
-            UI.notify(`GENERATED ${arr.length} NODES`);
-            
-        } catch(e) {
-            console.error(e);
-            UI.notify("JANUS ERROR");
-        } finally {
-            btn.disabled = false; btn.innerText = "AI SYNTH";
-        }
-    }
-};
-
-// === UI HELPERS ===
-const UI = {
-    cb: null,
-    openModal(title, callback, val="") {
-        document.getElementById('modal-title').innerText = title;
-        const div = document.getElementById('modal-input');
-        const inp = document.getElementById('inp-generic');
-        inp.value = val;
-        this.cb = callback;
-        div.style.display = "flex";
-        inp.focus();
-        
-        document.getElementById('btn-confirm').onclick = () => {
-            if(inp.value.trim()) { this.cb(inp.value.trim()); this.closeModal(); }
-        };
-    },
-    closeModal() {
-        document.getElementById('modal-input').style.display = "none";
-        this.cb = null;
-    },
-    notify(msg) {
-        const n = document.getElementById('notify');
-        n.innerText = msg; n.style.opacity = 1;
-        setTimeout(()=>n.style.opacity=0, 2000);
-    }
-};
-
-// === BOOT ===
-(async()=>{
-    await DB.init();
-    const d = await DB.load();
-    Render.init();
-    Graph.init(d);
-    Input.init();
-    document.fonts.ready.then(()=>Render.requestDraw());
-})();
+    updateButtonState(); updateTopology();
 </script>
 </body>
 </html>
