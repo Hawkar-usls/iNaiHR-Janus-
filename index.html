@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#05000a">
-    <title>iNaiHR: REFORGED KERNEL</title>
+    <title>iNaiHR: KERNEL</title>
     
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Orbitron:wght@600;700;900&display=swap" rel="stylesheet">
@@ -17,8 +17,8 @@
             --c-accent: #00e5ff;
             --c-white: #e0ccff;
             --c-red: #ff2a6d;
-            --glass: rgba(20, 0, 40, 0.85);
-            --border: rgba(211, 0, 255, 0.35);
+            --glass: rgba(10, 0, 20, 0.9);
+            --border: rgba(211, 0, 255, 0.4);
         }
 
         body, html {
@@ -28,10 +28,9 @@
             user-select: none; -webkit-user-select: none;
         }
 
-        /* LAYERS */
         #neural-bg {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle at 50% 50%, #120024, #000);
+            background: radial-gradient(circle at 50% 50%, #1a002e, #000);
             z-index: 0; pointer-events: none;
         }
         
@@ -40,77 +39,86 @@
             outline: none; -webkit-tap-highlight-color: transparent;
         }
 
-        /* UI OVERLAY */
+        /* UI */
         #ui-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 10; pointer-events: none;
         }
         .pointer-events-auto { pointer-events: auto; }
 
-        /* LOGO & STATUS */
         #status-bar {
             position: absolute; top: 20px; left: 20px;
             font-family: 'Orbitron'; font-size: 14px; letter-spacing: 2px;
-            color: rgba(255,255,255,0.3); text-shadow: 0 0 10px rgba(211,0,255,0.2);
+            color: rgba(255,255,255,0.4); text-shadow: 0 0 10px rgba(211,0,255,0.3);
         }
-        #status-bar span { color: var(--c-accent); }
+        #status-bar span { color: var(--c-accent); font-weight: bold; }
 
-        /* CONTROLS */
         .control-group {
             position: absolute; top: 20px; right: 20px;
-            display: flex; gap: 10px;
+            display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;
+            max-width: 300px;
         }
         .btn {
             background: var(--glass); border: 1px solid var(--border);
-            color: var(--c-primary); padding: 8px 16px;
-            font-family: 'Orbitron'; font-size: 12px; font-weight: 700;
-            backdrop-filter: blur(10px); cursor: pointer; transition: 0.2s;
-            text-transform: uppercase;
+            color: var(--c-primary); padding: 8px 12px;
+            font-family: 'Orbitron'; font-size: 11px; font-weight: 700;
+            backdrop-filter: blur(5px); cursor: pointer; transition: 0.2s;
+            text-transform: uppercase; border-radius: 4px;
         }
-        .btn:active { background: var(--c-primary); color: #000; }
+        .btn:active { background: var(--c-primary); color: #000; transform: translateY(2px); }
+        .btn.active-mode { background: var(--c-accent); color: #000; border-color: #fff; box-shadow: 0 0 15px var(--c-accent); }
         .btn:disabled { filter: grayscale(1); opacity: 0.5; }
         .btn-danger { border-color: var(--c-red); color: var(--c-red); }
-        .btn-danger:active { background: var(--c-red); color: #fff; }
-        
         .hidden { display: none !important; }
 
         /* FAB */
         #fab {
-            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
-            width: 70px; height: 70px; border-radius: 50%;
-            background: radial-gradient(circle, #2a003b, #000);
-            border: 1px solid var(--border); box-shadow: 0 0 30px rgba(211, 0, 255, 0.2);
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            width: 60px; height: 60px; border-radius: 50%;
+            background: #1a002e;
+            border: 2px solid var(--c-primary); 
+            box-shadow: 0 0 20px rgba(211, 0, 255, 0.3);
             display: flex; align-items: center; justify-content: center;
-            font-size: 30px; color: var(--c-primary); transition: 0.3s;
-            cursor: pointer; pointer-events: auto;
+            font-size: 32px; color: var(--c-primary); z-index: 20;
+            transition: 0.2s;
         }
-        #fab:active { transform: translateX(-50%) scale(0.9); border-color: var(--c-accent); color: var(--c-accent); }
+        #fab:active { transform: translateX(-50%) scale(0.9); background: var(--c-primary); color: #000; }
 
-        /* MODALS */
+        /* MODAL */
         .modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 100; display: none;
-            align-items: center; justify-content: center; backdrop-filter: blur(5px);
+            background: rgba(0,0,0,0.85); z-index: 100; display: none;
+            align-items: center; justify-content: center; backdrop-filter: blur(4px);
             pointer-events: auto;
         }
         .modal-box {
-            width: 80%; max-width: 300px; padding: 20px;
-            background: #0a0014; border: 1px solid var(--c-primary);
-            box-shadow: 0 0 50px rgba(211,0,255,0.1); text-align: center;
+            width: 85%; max-width: 320px; padding: 25px;
+            background: linear-gradient(135deg, #0f001a, #000); 
+            border: 1px solid var(--c-accent);
+            box-shadow: 0 0 50px rgba(0, 229, 255, 0.15); text-align: center;
+            border-radius: 8px;
         }
+        .modal-title { font-family: 'Orbitron'; color: var(--c-accent); margin-bottom: 15px; font-size: 14px; }
         input {
-            width: 100%; background: transparent; border: none;
-            border-bottom: 2px solid var(--c-primary); color: var(--c-white);
-            font-family: 'Orbitron'; font-size: 20px; text-align: center;
-            padding: 10px 0; outline: none; margin-bottom: 20px;
+            width: 100%; background: rgba(255,255,255,0.05); border: 1px solid #333;
+            border-bottom: 2px solid var(--c-accent); color: #fff;
+            font-family: 'Rajdhani'; font-size: 20px; font-weight: bold; text-align: center;
+            padding: 12px 0; outline: none; margin-bottom: 20px;
         }
+        input:focus { background: rgba(0, 229, 255, 0.1); }
 
-        /* NOTIFICATIONS */
+        /* NOTIFY */
         #notify {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            font-family: 'Orbitron'; font-size: 24px; color: var(--c-accent);
-            text-shadow: 0 0 20px var(--c-accent); opacity: 0; transition: 0.3s;
-            pointer-events: none; z-index: 1000; text-align: center; width: 100%;
+            font-family: 'Orbitron'; font-size: 20px; color: var(--c-accent);
+            text-shadow: 0 0 10px var(--c-accent); opacity: 0; transition: 0.3s;
+            pointer-events: none; z-index: 1000; background: rgba(0,0,0,0.8);
+            padding: 10px 20px; border: 1px solid var(--c-accent);
+        }
+        
+        .hint {
+            position: absolute; bottom: 10px; width: 100%; text-align: center;
+            font-size: 10px; color: rgba(255,255,255,0.3); pointer-events: none;
         }
     </style>
 </head>
@@ -120,124 +128,109 @@
     <canvas id="canvas"></canvas>
 
     <div id="ui-layer">
-        <div id="status-bar">iNaiHR <span>REFORGED</span> <span id="node-count">[0 NODES]</span></div>
+        <div id="status-bar">iNaiHR <span>NEXUS</span> <span id="node-count">[0]</span></div>
         
         <div class="control-group pointer-events-auto">
-            <button class="btn hidden" id="btn-ren" onclick="Input.triggerRename()">RENAME</button>
-            <button class="btn btn-danger hidden" id="btn-del" onclick="Input.triggerDelete()">DELETE</button>
+            <button class="btn hidden" id="btn-link" onclick="Input.toggleLinkMode()">[LINK]</button>
+            <button class="btn hidden" id="btn-ren" onclick="Input.triggerRename()">EDIT</button>
+            <button class="btn btn-danger hidden" id="btn-del" onclick="Input.triggerDelete()">DEL</button>
             
-            <div style="width: 1px; background: var(--border); margin: 0 5px;"></div>
+            <div style="width: 1px; background: #333; margin: 0 2px;"></div>
             
-            <button class="btn" id="btn-synth" onclick="AI.synth()">SYNTH</button>
-            <button class="btn" onclick="DB.wipe()">WIPE</button>
+            <button class="btn" id="btn-synth" onclick="AI.synth()">AI SYNTH</button>
+            <button class="btn" onclick="DB.wipe()">[WIPE]</button>
         </div>
 
         <button id="fab" class="pointer-events-auto" onclick="Input.handleFabClick()">+</button>
+        <div class="hint">DBL CLICK: Create | SHIFT+CLICK: Link | DRAG: Move</div>
     </div>
 
     <div id="notify">SYSTEM READY</div>
 
     <div id="modal-input" class="modal">
         <div class="modal-box">
-            <input type="text" id="inp-generic" placeholder="DATA..." autocomplete="off">
-            <button class="btn" style="width:100%" id="btn-confirm">CONFIRM</button>
-            <button class="btn" style="width:100%; margin-top:10px; border-color: #555; color: #777;" onclick="UI.closeModal()">CANCEL</button>
+            <div class="modal-title" id="modal-title">INPUT DATA</div>
+            <input type="text" id="inp-generic" autocomplete="off">
+            <div style="display:flex; gap:10px;">
+                <button class="btn" style="flex:1; border-color:var(--c-accent); color:var(--c-accent)" id="btn-confirm">OK</button>
+                <button class="btn" style="flex:1; border-color:#444; color:#888;" onclick="UI.closeModal()">CANCEL</button>
+            </div>
         </div>
     </div>
 
 <script>
-/**
- * SYSTEM CONFIGURATION
- */
+// === CONFIGURATION ===
 const CONFIG = {
     endpoint: "http://localhost:5000/api/inaihr/generate",
     colors: {
         node: "#d300ff",
         nodeSelected: "#00e5ff",
-        text: "#e0ccff",
-        link: "rgba(211, 0, 255, 0.15)",
-        grid: "rgba(211, 0, 255, 0.03)"
+        nodeAI: "#ffffff",
+        link: "rgba(211, 0, 255, 0.3)",
+        grid: "rgba(255, 255, 255, 0.03)"
     },
     physics: {
-        charge: -500,
-        dist: 120,
+        charge: -400,
+        dist: 150,
         collide: 40
     }
 };
 
-/**
- * MODULE 1: STORAGE CORE
- */
+// === DB CORE ===
 const DB = {
     db: null,
-    name: 'iNaiHR_Reforged_v1',
+    name: 'iNaiHR_NoEmoji_v1', 
     
     async init() {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(this.name, 1);
-            request.onupgradeneeded = (e) => {
+        return new Promise((resolve) => {
+            const req = indexedDB.open(this.name, 1);
+            req.onupgradeneeded = (e) => {
                 const db = e.target.result;
                 if (!db.objectStoreNames.contains('nodes')) db.createObjectStore('nodes', { keyPath: 'id' });
                 if (!db.objectStoreNames.contains('links')) db.createObjectStore('links', { keyPath: 'id' });
             };
-            request.onsuccess = (e) => {
-                this.db = e.target.result;
-                console.log("%c[DB] ONLINE", "color: #00e5ff");
-                resolve();
-            };
-            request.onerror = (e) => reject(e);
+            req.onsuccess = (e) => { this.db = e.target.result; resolve(); };
+            req.onerror = () => resolve(); 
         });
     },
-
-    async saveGraph() {
+    async save() {
         if (!this.db) return;
         const tx = this.db.transaction(['nodes', 'links'], 'readwrite');
-        const nodeStore = tx.objectStore('nodes');
-        // Clear old before saving to prevent orphans in DB (simple approach)
-        await nodeStore.clear(); 
-        Graph.nodes.forEach(n => nodeStore.put({
+        const nStore = tx.objectStore('nodes');
+        await nStore.clear();
+        Graph.nodes.forEach(n => nStore.put({
             id: n.id, label: n.label, x: n.x, y: n.y, isAI: n.isAI
         }));
-        
-        const linkStore = tx.objectStore('links');
-        await linkStore.clear();
-        Graph.links.forEach(l => linkStore.put({
+        const lStore = tx.objectStore('links');
+        await lStore.clear();
+        Graph.links.forEach(l => lStore.put({
             id: l.id,
             sourceId: l.source.id || l.source,
             targetId: l.target.id || l.target
         }));
     },
-
-    async loadGraph() {
+    async load() {
         return new Promise((resolve) => {
-            if (!this.db) resolve(null);
+            if (!this.db) return resolve(null);
             const tx = this.db.transaction(['nodes', 'links'], 'readonly');
-            const nodesReq = tx.objectStore('nodes').getAll();
-            const linksReq = tx.objectStore('links').getAll();
-            
-            tx.oncomplete = () => {
-                if (nodesReq.result.length === 0) resolve(null);
-                else resolve({ nodes: nodesReq.result, links: linksReq.result });
-            };
+            const nReq = tx.objectStore('nodes').getAll();
+            const lReq = tx.objectStore('links').getAll();
+            tx.oncomplete = () => resolve({ nodes: nReq.result, links: lReq.result });
         });
     },
-
     wipe() {
-        if(confirm("EXECUTE PROTOCOL: WIPE MEMORY?")) {
-            const req = indexedDB.deleteDatabase(this.name);
-            req.onsuccess = () => location.reload();
+        if(confirm("DESTROY ALL NEURAL DATA?")) {
+            indexedDB.deleteDatabase(this.name);
+            location.reload();
         }
     }
 };
 
-/**
- * MODULE 2: RENDER CORE
- */
+// === RENDER CORE ===
 const Render = {
     canvas: document.getElementById('canvas'),
     ctx: document.getElementById('canvas').getContext('2d'),
-    width: window.innerWidth,
-    height: window.innerHeight,
+    width: 0, height: 0,
     transform: d3.zoomIdentity,
     
     init() {
@@ -245,40 +238,38 @@ const Render = {
         window.addEventListener('resize', () => this.resize());
         
         d3.select(this.canvas).call(d3.zoom()
-            .scaleExtent([0.1, 5])
+            .scaleExtent([0.1, 4])
             .on("zoom", (e) => {
                 this.transform = e.transform;
                 this.requestDraw();
             })
+            .filter(event => !event.ctrlKey && !event.button) 
         ).on("dblclick.zoom", null);
     },
-
     resize() {
+        const dpr = window.devicePixelRatio || 1;
         this.width = window.innerWidth;
         this.height = window.innerHeight;
-        const dpr = window.devicePixelRatio || 1;
         this.canvas.width = this.width * dpr;
         this.canvas.height = this.height * dpr;
         this.ctx.scale(dpr, dpr);
         this.requestDraw();
     },
-
-    requestDraw() {
-        requestAnimationFrame(() => this.draw());
-    },
-
+    requestDraw() { requestAnimationFrame(() => this.draw()); },
+    
     draw() {
         const ctx = this.ctx;
         const t = this.transform;
         
         ctx.clearRect(0, 0, this.width, this.height);
-        
         ctx.save();
         ctx.translate(t.x, t.y);
         ctx.scale(t.k, t.k);
-
+        
+        // Grid
         this.drawGrid(ctx, t);
-
+        
+        // Links
         ctx.beginPath();
         ctx.strokeStyle = CONFIG.colors.link;
         ctx.lineWidth = 1.5;
@@ -287,442 +278,343 @@ const Render = {
             ctx.lineTo(l.target.x, l.target.y);
         });
         ctx.stroke();
-
+        
+        // Nodes
         Graph.nodes.forEach(n => {
             const isSel = (n === Graph.selected);
-            const r = 35; // Fixed size for stability
-
+            
+            // Glow
             if (isSel) {
                 ctx.beginPath();
-                ctx.arc(n.x, n.y, r + 5, 0, Math.PI * 2);
-                ctx.fillStyle = "rgba(0, 229, 255, 0.1)";
+                ctx.arc(n.x, n.y, 30, 0, Math.PI*2);
+                ctx.fillStyle = "rgba(0, 229, 255, 0.15)";
                 ctx.fill();
                 ctx.strokeStyle = CONFIG.colors.nodeSelected;
                 ctx.lineWidth = 1;
                 ctx.stroke();
             }
-
+            
+            // Core
             ctx.beginPath();
-            ctx.arc(n.x, n.y, 8, 0, Math.PI * 2);
+            ctx.arc(n.x, n.y, 10, 0, Math.PI*2);
             ctx.fillStyle = "#000";
             ctx.fill();
-            ctx.strokeStyle = isSel ? CONFIG.colors.nodeSelected : (n.isAI ? "#fff" : CONFIG.colors.node);
+            ctx.strokeStyle = isSel ? CONFIG.colors.nodeSelected : (n.isAI ? CONFIG.colors.nodeAI : CONFIG.colors.node);
             ctx.lineWidth = 2;
             ctx.stroke();
-
+            
+            // Label
             if (t.k > 0.4) {
                 ctx.font = `600 12px "Orbitron"`;
-                ctx.fillStyle = isSel ? CONFIG.colors.nodeSelected : "rgba(224, 204, 255, 0.6)";
+                ctx.fillStyle = isSel ? "#fff" : "rgba(255,255,255,0.6)";
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
-                ctx.fillText(n.label, n.x, n.y + 20);
+                ctx.fillText(n.label, n.x, n.y + 22);
             }
         });
-
+        
         ctx.restore();
     },
-
     drawGrid(ctx, t) {
-        const gridSize = 100;
-        const w = this.width / t.k;
-        const h = this.height / t.k;
-        const offX = -t.x / t.k;
-        const offY = -t.y / t.k;
-        
+        const sz = 100;
+        const w = this.width/t.k, h = this.height/t.k;
+        const ox = -t.x/t.k, oy = -t.y/t.k;
         ctx.beginPath();
         ctx.strokeStyle = CONFIG.colors.grid;
         ctx.lineWidth = 1;
-
-        const startX = Math.floor(offX / gridSize) * gridSize;
-        const startY = Math.floor(offY / gridSize) * gridSize;
-
-        for (let x = startX; x < offX + w; x += gridSize) {
-            ctx.moveTo(x, offY); ctx.lineTo(x, offY + h);
-        }
-        for (let y = startY; y < offY + h; y += gridSize) {
-            ctx.moveTo(offX, y); ctx.lineTo(offX + w, y);
-        }
+        for(let x=Math.floor(ox/sz)*sz; x<ox+w; x+=sz) { ctx.moveTo(x, oy); ctx.lineTo(x, oy+h); }
+        for(let y=Math.floor(oy/sz)*sz; y<oy+h; y+=sz) { ctx.moveTo(ox, y); ctx.lineTo(ox+w, y); }
         ctx.stroke();
     }
 };
 
-/**
- * MODULE 3: LOGIC KERNEL (REFORGED)
- * Phase I: Cleanse & Structure
- */
+// === LOGIC KERNEL ===
 const Graph = {
-    nodes: [],
-    links: [],
-    nodeMap: new Map(),
-    selected: null,
-    simulation: null,
-
+    nodes: [], links: [], nodeMap: new Map(),
+    selected: null, simulation: null,
+    
     init(data) {
         if (data) {
             this.nodes = data.nodes;
             this.links = data.links.map(l => ({
-                id: l.id,
-                source: l.sourceId, 
-                target: l.targetId
+                id: l.id, source: l.sourceId, target: l.targetId
             }));
         }
-        this.rebuildMap();
-        this.initSimulation();
-        this.updateStats();
+        this.sim();
+        this.update();
     },
-
-    rebuildMap() {
-        this.nodeMap.clear();
-        this.nodes.forEach(n => this.nodeMap.set(n.id, n));
-    },
-
-    initSimulation() {
+    
+    sim() {
         this.simulation = d3.forceSimulation(this.nodes)
-            .force("link", d3.forceLink(this.links).id(d => d.id).distance(CONFIG.physics.dist))
+            .force("link", d3.forceLink(this.links).id(d=>d.id).distance(CONFIG.physics.dist))
             .force("charge", d3.forceManyBody().strength(CONFIG.physics.charge))
             .force("collide", d3.forceCollide(CONFIG.physics.collide))
             .on("tick", () => Render.requestDraw());
     },
-
-    updateTopology() {
+    
+    update() {
         this.simulation.nodes(this.nodes);
         this.simulation.force("link").links(this.links);
         this.simulation.alpha(1).restart();
-        this.rebuildMap();
-        DB.saveGraph();
-        this.updateStats();
+        this.nodeMap.clear();
+        this.nodes.forEach(n => this.nodeMap.set(n.id, n));
+        
+        document.getElementById('node-count').innerText = `[${this.nodes.length}]`;
+        DB.save();
         Render.requestDraw();
     },
-
-    updateStats() {
-        document.getElementById('node-count').innerText = `[${this.nodes.length} NODES]`;
+    
+    // CRUD
+    addNode(x, y, label, isAI=false) {
+        const n = { id: Date.now()+Math.random(), x, y, label, isAI };
+        this.nodes.push(n);
+        this.update();
+        return n;
     },
-
-    // --- PHASE I IMPLEMENTATION: SEPARATE CONCERNS ---
-
-    _generateLinkID(sourceId, targetId) {
-        return `${sourceId}-${targetId}`;
-    },
-
-    // Pure creation, no side effects
-    createRawNode(x, y, label) {
-        return { 
-            id: Date.now() + Math.random(), 
-            label: label, 
-            x: x, 
-            y: y 
-        };
-    },
-
-    // 1. ROOT CREATION
-    createRootNode(x, y, label) {
-        const newNode = this.createRawNode(x, y, label);
-        this.nodes.push(newNode);
-        this.selected = newNode;
-        this.updateTopology();
-        Input.updateUI();
-        return newNode;
-    },
-
-    // 2. CHILD CREATION
-    createChildNode(parent, label) {
-        if (!parent) return this.createRootNode(0, 0, label);
-
-        const x = parent.x + (Math.random()-0.5) * 50;
-        const y = parent.y + (Math.random()-0.5) * 50;
+    
+    toggleLink(n1, n2) {
+        if (n1 === n2) return;
+        const existIdx = this.links.findIndex(l => 
+            (l.source === n1 && l.target === n2) || (l.source === n2 && l.target === n1)
+        );
         
-        const newNode = this.createRawNode(x, y, label);
-        const newLink = {
-            id: this._generateLinkID(parent.id, newNode.id),
-            source: parent.id, // D3 will resolve this via ID mapping
-            target: newNode.id
-        };
-
-        this.nodes.push(newNode);
-        this.links.push(newLink);
-        
-        // Auto-select child? Optional. Let's keep parent selected for rapid firing, or select child.
-        // Let's select child to confirm creation.
-        // this.selected = newNode; 
-
-        this.updateTopology();
-        Input.updateUI();
-        return newNode;
-    },
-
-    // 3. BATCH INJECTION (FOR AI)
-    injectBatch(newNodes, newLinks) {
-        this.nodes.push(...newNodes);
-        this.links.push(...newLinks);
-        this.updateTopology();
-        Input.updateUI();
-    },
-
-    deleteNode(node) {
-        if (!node) return;
-        this.nodes = this.nodes.filter(n => n.id !== node.id);
-        this.links = this.links.filter(l => l.source.id !== node.id && l.target.id !== node.id);
-        this.selected = null;
-        this.updateTopology();
-        Input.updateUI();
-    },
-
-    getAIContext(node) {
-        const neighbors = this.links
-            .filter(l => l.source.id === node.id || l.target.id === node.id)
-            .map(l => (l.source.id === node.id ? l.target : l.source));
-        
-        const neighborLabels = neighbors.map(n => n.label).join(", ");
-        
-        return `
-        CONTEXT:
-        Current Node: "${node.label}"
-        Connected Neighbors: [${neighborLabels}]
-        Goal: Expand this specific concept branch.
-        `;
-    }
-};
-
-/**
- * MODULE 4: AI INTERFACE
- * Phase II: Batch Optimization
- */
-const AI = {
-    async synth() {
-        const node = Graph.selected;
-        if (!node) { UI.notify("SELECT ORIGIN NODE"); return; }
-        
-        const btn = document.getElementById('btn-synth');
-        btn.disabled = true; btn.innerText = "LINKING...";
-        
-        const contextBlock = Graph.getAIContext(node);
-        const prompt = `
-        ${contextBlock}
-        TASK:
-        Generate 3 distinct, concrete child concepts for the Current Node.
-        Output ONLY valid JSON format:
-        [
-            {"text": "Concept 1", "emoji": "🔹"},
-            {"text": "Concept 2", "emoji": "🔸"},
-            {"text": "Concept 3", "emoji": "🔻"}
-        ]
-        `;
-
-        try {
-            const response = await fetch(CONFIG.endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: prompt })
-            });
-
-            if (!response.ok) throw new Error("Janus link unstable");
-
-            const results = await response.json();
-            if (!Array.isArray(results)) throw new Error("Invalid Neural Data");
-
-            // --- BATCH PREPARATION ---
-            const batchNodes = [];
-            const batchLinks = [];
-
-            results.forEach((item, i) => {
-                const x = node.x + (Math.random()-0.5) * 100;
-                const y = node.y + (Math.random()-0.5) * 100;
-                
-                const rawNode = Graph.createRawNode(x, y, `${item.emoji} ${item.text}`);
-                rawNode.isAI = true;
-                
-                const rawLink = {
-                    id: Graph._generateLinkID(node.id, rawNode.id),
-                    source: node.id,
-                    target: rawNode.id
-                };
-
-                batchNodes.push(rawNode);
-                batchLinks.push(rawLink);
-            });
-
-            Graph.injectBatch(batchNodes, batchLinks);
-            UI.notify(`JANUS GRANTED: ${results.length} NODES`);
-
-        } catch (e) {
-            console.error(e);
-            UI.notify("JANUS CORE OFFLINE");
-        } finally {
-            btn.disabled = false; btn.innerText = "SYNTH";
+        if (existIdx >= 0) {
+            this.links.splice(existIdx, 1);
+            UI.notify("LINK BROKEN");
+        } else {
+            this.links.push({ id: `${n1.id}-${n2.id}`, source: n1, target: n2 });
+            UI.notify("LINKED");
         }
+        this.update();
+    },
+    
+    deleteNode(n) {
+        this.nodes = this.nodes.filter(x => x !== n);
+        this.links = this.links.filter(l => l.source !== n && l.target !== n);
+        this.selected = null;
+        this.update();
+        Input.updateUI();
+    },
+    
+    getAIContext(n) {
+        const neighbors = this.links
+            .filter(l => l.source === n || l.target === n)
+            .map(l => (l.source === n ? l.target : l.source));
+        return `NODE: "${n.label}"\nCONNECTED TO: [${neighbors.map(x=>x.label).join(", ")}]`;
     }
 };
 
-/**
- * MODULE 5: INPUT & UI
- * Phase II: Explicit Interaction & Modal
- */
+// === INPUT SYSTEM ===
 const Input = {
+    isLinkMode: false,
+    
     init() {
-        const canvas = d3.select("#canvas");
+        const cvs = d3.select("#canvas");
         
-        canvas.on("click", (event) => {
-            // Check if dragging happened (d3 logic handles this, but for click vs drag distinction)
-            if (event.defaultPrevented) return;
-
-            const [mx, my] = d3.pointer(event);
-            const t = Render.transform;
-            const wx = (mx - t.x) / t.k;
-            const wy = (my - t.y) / t.k;
-            
-            const clickedNode = Graph.nodes.find(n => {
-                const dx = n.x - wx;
-                const dy = n.y - wy;
-                return Math.sqrt(dx*dx + dy*dy) < 20;
-            });
-
-            if (clickedNode) {
-                Graph.selected = clickedNode;
-            } else {
-                Graph.selected = null;
-                // EMPTY CLICK -> CREATE ROOT (Via Modal)
-                UI.openModal("NEW ROOT ORIGIN", (label) => {
-                    Graph.createRootNode(wx, wy, label);
-                });
-            }
-            this.updateUI();
-            Render.requestDraw();
-        });
-
-        // DRAG LOGIC (Unchanged)
-        canvas.call(d3.drag()
-            .subject((event) => {
+        // 1. Dragging
+        cvs.call(d3.drag()
+            .subject(e => {
                 const t = Render.transform;
-                const wx = (event.x - t.x) / t.k;
-                const wy = (event.y - t.y) / t.k;
-                return Graph.nodes.find(n => {
-                    const dx = n.x - wx;
-                    const dy = n.y - wy;
-                    return Math.sqrt(dx*dx + dy*dy) < 30;
-                });
+                const wx = (e.x - t.x)/t.k, wy = (e.y - t.y)/t.k;
+                return Graph.nodes.find(n => Math.hypot(n.x-wx, n.y-wy) < 30);
             })
-            .on("start", (event) => {
-                if (!event.active) Graph.simulation.alphaTarget(0.3).restart();
-                event.subject.fx = event.subject.x;
-                event.subject.fy = event.subject.y;
-                Graph.selected = event.subject;
+            .on("start", e => {
+                if (!e.active) Graph.simulation.alphaTarget(0.3).restart();
+                e.subject.fx = e.subject.x;
+                e.subject.fy = e.subject.y;
+                Graph.selected = e.subject; 
                 Input.updateUI();
             })
-            .on("drag", (event) => {
-                event.subject.fx = event.x;
-                event.subject.fy = event.y;
+            .on("drag", e => {
+                e.subject.fx = e.x;
+                e.subject.fy = e.y;
             })
-            .on("end", (event) => {
-                if (!event.active) Graph.simulation.alphaTarget(0);
-                event.subject.fx = null;
-                event.subject.fy = null;
-                DB.saveGraph();
+            .on("end", e => {
+                if (!e.active) Graph.simulation.alphaTarget(0);
+                e.subject.fx = null; e.subject.fy = null;
+                DB.save();
             })
         );
-    },
-
-    // UI ACTIONS
-    updateUI() {
-        const btnRen = document.getElementById('btn-ren');
-        const btnDel = document.getElementById('btn-del');
-        const btnSynth = document.getElementById('btn-synth');
         
-        if (Graph.selected) {
-            btnRen.classList.remove('hidden');
-            btnDel.classList.remove('hidden');
-            btnSynth.style.opacity = "1";
-        } else {
-            btnRen.classList.add('hidden');
-            btnDel.classList.add('hidden');
-            btnSynth.style.opacity = "0.3";
-        }
-        Render.requestDraw();
+        // 2. Click (Select / Link)
+        cvs.on("click", (e) => {
+            if (e.defaultPrevented) return; 
+            
+            const t = Render.transform;
+            const [mx, my] = d3.pointer(e);
+            const wx = (mx - t.x)/t.k, wy = (my - t.y)/t.k;
+            
+            const clicked = Graph.nodes.find(n => Math.hypot(n.x-wx, n.y-wy) < 30);
+            
+            if (clicked) {
+                if (Graph.selected && (e.shiftKey || Input.isLinkMode)) {
+                    Graph.toggleLink(Graph.selected, clicked);
+                    if (Input.isLinkMode) Input.toggleLinkMode(); 
+                } else {
+                    Graph.selected = clicked;
+                }
+            } else {
+                Graph.selected = null;
+            }
+            Input.updateUI();
+        });
+        
+        // 3. Double Click (Create)
+        cvs.on("dblclick", (e) => {
+            const t = Render.transform;
+            const [mx, my] = d3.pointer(e);
+            const wx = (mx - t.x)/t.k, wy = (my - t.y)/t.k;
+            
+            // Only create if empty space
+            if (!Graph.nodes.find(n => Math.hypot(n.x-wx, n.y-wy) < 30)) {
+                UI.openModal("CREATE NODE", (lbl) => {
+                    const n = Graph.addNode(wx, wy, lbl);
+                    Graph.selected = n;
+                    Input.updateUI();
+                });
+            }
+        });
     },
-
+    
+    updateUI() {
+        const sel = Graph.selected;
+        document.getElementById('btn-link').classList.toggle('hidden', !sel);
+        document.getElementById('btn-ren').classList.toggle('hidden', !sel);
+        document.getElementById('btn-del').classList.toggle('hidden', !sel);
+        document.getElementById('btn-synth').style.opacity = sel ? "1" : "0.5";
+    },
+    
     handleFabClick() {
         if (Graph.selected) {
-            // Context: Add Child
-            UI.openModal("ADD CHILD NODE", (label) => {
-                Graph.createChildNode(Graph.selected, label);
+            UI.openModal("ADD CHILD", (lbl) => {
+                const p = Graph.selected;
+                const c = Graph.addNode(p.x+(Math.random()-0.5)*50, p.y+50, lbl);
+                Graph.toggleLink(p, c);
             });
         } else {
-            // Context: Add Root (Center Screen)
+            // Simulate center click
             const t = Render.transform;
-            const cx = (Render.width/2 - t.x)/t.k;
-            const cy = (Render.height/2 - t.y)/t.k;
-            
-            UI.openModal("NEW ROOT ORIGIN", (label) => {
-                Graph.createRootNode(cx, cy, label);
+            UI.openModal("NEW ROOT", (lbl) => {
+                const n = Graph.addNode((Render.width/2 - t.x)/t.k, (Render.height/2 - t.y)/t.k, lbl);
+                Graph.selected = n;
+                Input.updateUI();
             });
         }
     },
-
+    
+    toggleLinkMode() {
+        this.isLinkMode = !this.isLinkMode;
+        const btn = document.getElementById('btn-link');
+        if (this.isLinkMode) {
+            btn.classList.add('active-mode');
+            btn.innerText = "SELECT TARGET";
+            UI.notify("SELECT NODE TO LINK");
+        } else {
+            btn.classList.remove('active-mode');
+            btn.innerText = "[LINK]";
+        }
+    },
+    
     triggerRename() {
         if (!Graph.selected) return;
-        UI.openModal("RENAME NODE", (label) => {
-            Graph.selected.label = label;
-            Graph.updateTopology();
+        UI.openModal("RENAME", (val) => {
+            Graph.selected.label = val;
+            Graph.update();
         }, Graph.selected.label);
     },
-
+    
     triggerDelete() {
-        if (!Graph.selected) return;
-        if(confirm("DELETE NODE AND LINKS?")) {
-            Graph.deleteNode(Graph.selected);
+        if (Graph.selected && confirm("DELETE?")) Graph.deleteNode(Graph.selected);
+    }
+};
+
+// === AI SYSTEM ===
+const AI = {
+    async synth() {
+        if (!Graph.selected) return UI.notify("SELECT A NODE FIRST");
+        
+        const btn = document.getElementById('btn-synth');
+        btn.disabled = true; btn.innerText = "PROCESSING...";
+        
+        // --- STRICT PROMPT NO EMOJIS ---
+        const prompt = `
+        ${Graph.getAIContext(Graph.selected)}
+        TASK: Generate 3 related sub-concepts (JSON).
+        FORMAT: [{"text":"Name"}, ...]
+        CONSTRAINT: USE ONLY TEXT. NO EMOJIS. NO SYMBOLS.
+        `;
+        
+        try {
+            const res = await fetch(CONFIG.endpoint, {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ prompt })
+            });
+            if (!res.ok) throw new Error("API Fail");
+            
+            const arr = await res.json();
+            if (!Array.isArray(arr)) throw new Error("Bad Data");
+            
+            const parent = Graph.selected;
+            arr.forEach(item => {
+                // FORCE CLEAN TEXT
+                const cleanText = item.text.replace(/[^\x00-\x7Fа-яА-Я0-9 ]/g, "");
+                
+                const node = Graph.addNode(
+                    parent.x + (Math.random()-0.5)*150,
+                    parent.y + (Math.random()-0.5)*150,
+                    cleanText || "Node",
+                    true
+                );
+                Graph.toggleLink(parent, node);
+            });
+            UI.notify(`GENERATED ${arr.length} NODES`);
+            
+        } catch(e) {
+            console.error(e);
+            UI.notify("JANUS ERROR");
+        } finally {
+            btn.disabled = false; btn.innerText = "AI SYNTH";
         }
     }
 };
 
+// === UI HELPERS ===
 const UI = {
-    modalCallback: null,
-
-    openModal(placeholder, callback, initialValue = "") {
-        const modal = document.getElementById('modal-input');
+    cb: null,
+    openModal(title, callback, val="") {
+        document.getElementById('modal-title').innerText = title;
+        const div = document.getElementById('modal-input');
         const inp = document.getElementById('inp-generic');
-        const btn = document.getElementById('btn-confirm');
-        
-        inp.placeholder = placeholder;
-        inp.value = initialValue;
-        this.modalCallback = callback;
-        
-        modal.style.display = "flex";
+        inp.value = val;
+        this.cb = callback;
+        div.style.display = "flex";
         inp.focus();
         
-        // One-time bind for confirm
-        btn.onclick = () => {
-            const val = inp.value.trim();
-            if (val && this.modalCallback) {
-                this.modalCallback(val);
-                this.closeModal();
-            }
+        document.getElementById('btn-confirm').onclick = () => {
+            if(inp.value.trim()) { this.cb(inp.value.trim()); this.closeModal(); }
         };
     },
-
     closeModal() {
         document.getElementById('modal-input').style.display = "none";
-        this.modalCallback = null;
+        this.cb = null;
     },
-
     notify(msg) {
-        const el = document.getElementById('notify');
-        el.innerText = msg;
-        el.style.opacity = 1;
-        setTimeout(() => el.style.opacity = 0, 2000);
+        const n = document.getElementById('notify');
+        n.innerText = msg; n.style.opacity = 1;
+        setTimeout(()=>n.style.opacity=0, 2000);
     }
 };
 
-// BOOTSTRAP
-(async function Boot() {
+// === BOOT ===
+(async()=>{
     await DB.init();
-    const data = await DB.loadGraph();
-    
+    const d = await DB.load();
     Render.init();
-    Graph.init(data);
+    Graph.init(d);
     Input.init();
-    
-    document.fonts.ready.then(() => Render.requestDraw());
+    document.fonts.ready.then(()=>Render.requestDraw());
 })();
-
 </script>
 </body>
 </html>
