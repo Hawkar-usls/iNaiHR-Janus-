@@ -3,180 +3,342 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>iNaiHR: JANUS NEXUS</title>
+    <title>iNaiHR: CELLULAR LINK</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Orbitron:wght@600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        :root { --bg-dark: #05000a; --c-primary: #d300ff; --c-accent: #00e5ff; --c-white: #e0ccff; --c-red: #ff2a6d; --glass-border: rgba(211, 0, 255, 0.25); }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg-dark); font-family: 'Rajdhani', sans-serif; color: var(--c-white); user-select: none; }
-        #neural-bg { position: absolute; width: 100%; height: 100%; background: radial-gradient(circle at 50% 50%, #120024, #000); z-index: 0; pointer-events: none; }
-        #logo { position: absolute; top: 30px; left: 30px; z-index: 10; font-family: 'Orbitron'; font-size: 1.6rem; color: rgba(255,255,255,0.2); pointer-events: none; }
-        #logo span.i { color: var(--c-accent); } #logo span.ai { color: var(--c-primary); }
-        .ui-group { position: absolute; top: 40px; right: 30px; z-index: 10; display: flex; gap: 10px; }
-        .ui-btn { background: rgba(20, 0, 40, 0.6); border: 1px solid var(--glass-border); color: var(--c-primary); padding: 8px 16px; font-family: 'Orbitron'; font-weight: 700; font-size: 0.75rem; cursor: pointer; }
-        #btn-synth.active { background: var(--c-accent); color: #000; }
-        #main-btn { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); width: 72px; height: 72px; z-index: 100; border-radius: 50%; background: radial-gradient(circle, #2a003b, #000); border: 1px solid var(--c-primary); display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.3s; }
-        #main-btn::after { content: '+'; font-size: 30px; color: var(--c-primary); }
-        #main-btn.mode-edit::after { content: '✎'; color: white; }
-        .modal-backdrop { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:200; display:none; justify-content:center; align-items:center; }
-        .modal-content { background:#0a0014; border:1px solid var(--c-primary); padding:20px; text-align:center; width:80%; max-width:300px; }
-        input { background:transparent; border:none; border-bottom:2px solid var(--c-primary); color:white; font-size:1.2rem; text-align:center; width:100%; outline:none; margin-bottom:20px; }
-        .modal-btn { width:100%; padding:10px; background:var(--c-primary); border:none; font-weight:bold; cursor:pointer; }
-        #alert-msg { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:var(--c-accent); font-family:'Orbitron'; font-size:1.5rem; opacity:0; pointer-events:none; transition:0.3s; z-index:300; text-shadow:0 0 20px var(--c-accent); text-align: center; width: 100%; }
+        :root {
+            --bg-deep: #0b0c15;
+            --c-user: #00e5ff;    /* Cyan Bioluminescence */
+            --c-janus: #ff4081;   /* Magenta Essence */
+            --c-text: #ffffff;
+            --glass: rgba(20, 20, 30, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, #1a1c29 0%, #000000 100%); overflow: hidden; font-family: 'Quicksand', sans-serif; color: var(--c-text); user-select: none; }
         
-        .link { stroke: rgba(211, 0, 255, 0.2); stroke-width: 1.5px; }
-        .neuron-core { fill: #000; stroke: var(--c-primary); stroke-width: 2px; }
-        .neuron-aura { fill: transparent; stroke: #9d00ff; stroke-width: 1px; opacity: 0.3; }
-        .node-group.selected .neuron-core { stroke: var(--c-accent); filter: drop-shadow(0 0 10px var(--c-accent)); }
-        .node-group.selected text { fill: var(--c-accent); }
-        text { font-family: 'Orbitron'; font-size: 10px; fill: rgba(255,255,255,0.6); pointer-events: none; text-anchor: middle; }
+        #nebula { position: absolute; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: 0.4; background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIj48ZmlsdGVyIGlkPSJnoiPjGZTurbGVuY2UiIGJhc2VGcmVxdWVuY3k9IjAuNjUiIG51bU9jdGF2ZXM9IjMiIHN0aXRjaFRpbGVzPSJzdGl0Y2giLz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWx0ZXI9InVybCgjZykiIG9wYWNpdHk9IjAuNSIvPjwvc3ZnPg=='); }
+
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; box-sizing: border-box; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; pointer-events: auto; }
+        .logo { font-family: 'Rajdhani'; font-weight: 700; font-size: 24px; letter-spacing: 2px; text-shadow: 0 0 15px rgba(0, 229, 255, 0.5); display: flex; align-items: center; gap: 10px; }
+        .logo span { color: var(--c-user); }
+        .status-dot { width: 8px; height: 8px; background: #0f0; border-radius: 50%; box-shadow: 0 0 8px #0f0; transition: 0.3s; }
+        
+        .controls { display: flex; justify-content: center; gap: 20px; pointer-events: auto; padding-bottom: 20px; }
+        .fab { width: 60px; height: 60px; border-radius: 50%; border: none; background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); color: var(--c-text); font-size: 24px; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .fab:hover { transform: scale(1.1); background: rgba(255,255,255,0.1); border-color: var(--c-user); box-shadow: 0 0 20px var(--c-user); }
+        .fab.add { color: var(--c-user); }
+        .fab.center { font-size: 18px; color: #aaa; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); z-index: 100; display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.4s ease; }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        
+        .card { width: 320px; background: rgba(20, 20, 35, 0.7); backdrop-filter: blur(20px); border-radius: 30px; padding: 30px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 20px 50px rgba(0,0,0,0.5); transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); text-align: center; }
+        .modal-overlay.active .card { transform: scale(1); }
+        
+        .card.janus { border-top: 4px solid var(--c-janus); box-shadow: 0 10px 40px rgba(255, 64, 129, 0.2); }
+        .card.user { border-top: 4px solid var(--c-user); box-shadow: 0 10px 40px rgba(0, 229, 255, 0.2); }
+
+        .card h2 { font-family: 'Rajdhani'; margin: 0 0 10px 0; font-size: 22px; }
+        .card p { font-size: 14px; color: #ccc; line-height: 1.5; margin-bottom: 25px; }
+        .card input { width: 100%; padding: 15px; border-radius: 15px; border: none; background: rgba(0,0,0,0.3); color: white; font-family: 'Quicksand'; font-size: 16px; margin-bottom: 20px; outline: none; text-align: center; box-sizing: border-box; }
+        
+        .actions { display: flex; gap: 10px; justify-content: center; }
+        .btn { padding: 12px 24px; border-radius: 20px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; font-family: 'Rajdhani'; letter-spacing: 1px; }
+        .btn-close { background: transparent; color: #888; }
+        .btn-close:hover { color: #fff; }
+        .btn-save { background: var(--c-user); color: #000; box-shadow: 0 5px 15px rgba(0, 229, 255, 0.3); }
+        .btn-save:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 229, 255, 0.5); }
+        .btn-del { background: rgba(255, 64, 129, 0.1); color: var(--c-janus); }
+        .btn-del:hover { background: var(--c-janus); color: #fff; }
+
+        #chart { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        .link { stroke: rgba(255, 255, 255, 0.05); stroke-width: 1.5px; stroke-dasharray: 5, 5; }
+        
+        .node { cursor: pointer; transition: 0.3s; }
+        .node circle.main { stroke-width: 0; transition: all 0.5s ease; }
+        
+        .node.user circle.main { fill: var(--c-user); fill-opacity: 0.2; stroke: var(--c-user); stroke-width: 2px; }
+        .node.user:hover circle.main { fill-opacity: 0.5; filter: drop-shadow(0 0 15px var(--c-user)); r: 14; }
+        
+        .node.janus circle.main { fill: var(--c-janus); fill-opacity: 0.1; stroke: var(--c-janus); stroke-width: 1px; stroke-dasharray: 2,2; }
+        .node.janus:hover circle.main { fill-opacity: 0.3; filter: drop-shadow(0 0 15px var(--c-janus)); }
+        
+        .node text { font-family: 'Quicksand'; font-weight: 600; font-size: 11px; fill: rgba(255,255,255,0.8); pointer-events: none; text-shadow: 0 2px 4px #000; transition: 0.3s; }
+        .node:hover text { font-size: 13px; fill: #fff; }
+
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+        .node { animation: float 6s ease-in-out infinite; animation-delay: calc(var(--i) * 0.1s); }
     </style>
 </head>
 <body>
-    <div id="neural-bg"></div>
-    <div id="logo"><span class="i">i</span>N<span class="ai">ai</span>HR</div>
-    <div class="ui-group"><button id="btn-synth" class="ui-btn" onclick="synthAI()">AI SYNTH</button><button class="ui-btn" onclick="clearData()">WIPE</button></div>
-    <div id="alert-msg"></div>
-    <button id="main-btn" class="mode-add"></button>
-    <div id="rename-modal" class="modal-backdrop"><div class="modal-content"><input type="text" id="rename-input"><button class="modal-btn" onclick="saveRename()">OK</button></div></div>
+
+    <div id="nebula"></div>
     <div id="chart"></div>
 
+    <div id="ui-layer">
+        <div class="header">
+            <div class="logo"><span>●</span> iNaiHR</div>
+            <div class="status-dot" id="connection-dot"></div>
+        </div>
+        
+        <div class="controls">
+            <button class="fab add" onclick="openAddModal()">+</button>
+            <button class="fab center" onclick="centerView()">⌖</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal">
+        <div class="card" id="modal-card">
+            <h2 id="m-title">Title</h2>
+            
+            <div id="view-mode">
+                <p id="m-desc">Description...</p>
+            </div>
+
+            <div id="edit-mode" style="display:none;">
+                <input type="text" id="node-input" placeholder="✨ Мысль или идея..." maxlength="40">
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-close" onclick="closeModal()">Закрыть</button>
+                <button class="btn btn-del" id="btn-del" onclick="deleteCurrentNode()" style="display:none;">Удалить</button>
+                <button class="btn btn-save" id="btn-save" onclick="saveNewNode()" style="display:none;">Создать</button>
+            </div>
+        </div>
+    </div>
+
 <script>
-    // === CONFIGURATION ===
-    const NGROK_URL = "https://supperless-yoshiko-noneruditely.ngrok-free.dev"; 
-    const API_ENDPOINT = `${NGROK_URL}/api/inaihr/generate`;
+    // ЗАМЕНИ НА ТВОЙ NGROK URL
+    const API_BASE = "https://supperless-yoshiko-noneruditely.ngrok-free.dev"; 
     
-    // Headers to bypass Ngrok warning page
-    const API_HEADERS = { 
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true' 
+    const urlParams = new URLSearchParams(window.location.search);
+    const USER_ID = urlParams.get('user_id') || 'Hawkar';
+
+    let nodes = [];
+    let links = [];
+    let simulation;
+    let svg, g, linkG, nodeG;
+    let selectedNode = null;
+
+    window.onload = () => {
+        initGraph();
+        fetchNodes();
+        setInterval(fetchNodes, 8000); 
     };
 
-    const width = window.innerWidth, height = window.innerHeight;
-    let nodes = [{ id: 1, label: "Origin", x: width/2, y: height/2 }], links = [], selectedNode = null;
-    
-    const saved = localStorage.getItem('inaihr_ngrok_v2');
-    if(saved) { const d = JSON.parse(saved); nodes=d.nodes; links=d.links; }
+    function initGraph() {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
 
-    const svg = d3.select("#chart").append("svg").attr("width", width).attr("height", height);
-    const g = svg.append("g");
-    const linkG = g.append("g"), nodeG = g.append("g");
-    
-    svg.call(d3.zoom().on("zoom", e => g.attr("transform", e.transform))).on("dblclick.zoom", null);
-    svg.on("click", e => { if(e.target.tagName==='svg') deselect(); });
+        svg = d3.select("#chart").append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .on("click", (e) => { if(e.target.tagName === 'svg') closeModal(); });
 
-    const sim = d3.forceSimulation(nodes)
-        .force("link", d3.forceLink(links).id(d=>d.id).distance(120))
-        .force("charge", d3.forceManyBody().strength(-400))
-        .force("collide", d3.forceCollide(40))
-        .force("center", d3.forceCenter(width/2, height/2))
-        .on("tick", render);
+        g = svg.append("g");
+        linkG = g.append("g");
+        nodeG = g.append("g");
 
-    async function synthAI() {
-        if(!selectedNode) return alertMsg("SELECT NODE");
-        const btn = document.getElementById('btn-synth');
-        btn.innerText = "UPLOADING..."; btn.disabled = true;
+        const zoom = d3.zoom().scaleExtent([0.2, 3]).on("zoom", (e) => g.attr("transform", e.transform));
+        svg.call(zoom);
 
-        const prompt = `Node: "${selectedNode.label}". Generate 4 children (JSON: [{"text":"...", "emoji":"..."}]).`;
+        simulation = d3.forceSimulation()
+            .force("link", d3.forceLink().id(d => d.id).distance(120).strength(0.05))
+            .force("charge", d3.forceManyBody().strength(-200))
+            .force("center", d3.forceCenter(width / 2, height / 2).strength(0.02))
+            .force("collide", d3.forceCollide(50).strength(0.5))
+            .alphaDecay(0.02)
+            .on("tick", ticked);
+    }
 
+    async function fetchNodes() {
         try {
-            const res = await fetch(API_ENDPOINT, {
-                method: 'POST',
-                headers: API_HEADERS,
-                body: JSON.stringify({ prompt: prompt })
+            const res = await fetch(`${API_BASE}/api/inaihr/get?user_id=${USER_ID}`, {
+                headers: { 'ngrok-skip-browser-warning': 'true' }
             });
-
-            if(!res.ok) throw new Error("Connection Failed");
+            if (!res.ok) throw new Error("Err");
             const data = await res.json();
-            
-            if(!Array.isArray(data)) throw new Error("Bad Data");
+            mergeData(data);
+            document.getElementById('connection-dot').style.background = "#0f0";
+            document.getElementById('connection-dot').style.boxShadow = "0 0 8px #0f0";
+        } catch (e) {
+            document.getElementById('connection-dot').style.background = "#555";
+            document.getElementById('connection-dot').style.boxShadow = "none";
+        }
+    }
 
-            data.forEach((item, i) => {
-                const nn = { id: Date.now()+i, label: `${item.emoji||'🔹'} ${item.text}`, x: selectedNode.x, y: selectedNode.y, isAI: true };
-                nodes.push(nn); links.push({ source: selectedNode.id, target: nn.id });
+    async function syncToServer() {
+        const userNodes = nodes.filter(n => n.type === 'user');
+        try {
+            await fetch(`${API_BASE}/api/inaihr/sync`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: USER_ID, nodes: userNodes })
             });
+            fetchNodes();
+        } catch(e) {}
+    }
+
+    function mergeData(serverNodes) {
+        const nodeMap = new Map(nodes.map(n => [n.id, n]));
+        
+        const newNodes = serverNodes.map(n => {
+            const existing = nodeMap.get(n.id);
+            return {
+                id: n.id,
+                label: n.label,
+                type: n.type || 'user', 
+                description: n.description || (n.type === 'janus' ? "Врожденная черта." : "Личная мысль."),
+                x: existing ? existing.x : (n.x || window.innerWidth/2 + (Math.random()-0.5)*200),
+                y: existing ? existing.y : (n.y || window.innerHeight/2 + (Math.random()-0.5)*200),
+                vx: existing ? existing.vx : 0,
+                vy: existing ? existing.vy : 0
+            };
+        });
+
+        const newLinks = [];
+        if (newNodes.length > 1) {
+            const hubs = newNodes.filter(n => n.type === 'janus');
+            const targetHub = hubs.length > 0 ? hubs[0] : newNodes[0];
             
-            update(); alertMsg(`RECEIVED ${data.length} NODES`);
-        } catch(e) {
-            console.error(e); alertMsg("JANUS UNREACHABLE");
-        } finally {
-            btn.innerText = "AI SYNTH"; btn.disabled = false;
+            newNodes.forEach(n => {
+                if (n.id !== targetHub.id) {
+                    newLinks.push({ source: targetHub.id, target: n.id });
+                }
+            });
         }
+
+        nodes = newNodes;
+        links = newLinks;
+        updateGraph();
     }
 
-    const btnMain = document.getElementById('main-btn');
-    btnMain.onclick = () => { if(selectedNode) openModal(); else createNode(); };
-    
-    function createNode() {
-        const nn = { id: Date.now(), label: "Void", x: width/2, y: height/2 };
-        nodes.push(nn); selectedNode = nn; update(); openModal();
+    function updateGraph() {
+        let nodeSel = nodeG.selectAll(".node").data(nodes, d => d.id);
+        
+        const nodeEnter = nodeSel.enter().append("g")
+            .attr("class", d => `node ${d.type}`)
+            .style("opacity", 0)
+            .call(d3.drag().on("start", dragstarted).on("drag", dragged).on("end", dragended))
+            .on("click", clickNode);
+
+        nodeEnter.style("--i", d => Math.random());
+        nodeEnter.append("circle").attr("class", "aura").attr("r", 25).attr("fill", "transparent");
+        nodeEnter.append("circle").attr("class", "main").attr("r", 10);
+        nodeEnter.append("text").attr("dy", 25).attr("text-anchor", "middle").text(d => d.label);
+
+        nodeEnter.transition().duration(1000).style("opacity", 1);
+        nodeSel.exit().transition().duration(500).style("opacity", 0).remove();
+
+        nodeSel.attr("class", d => `node ${d.type}`);
+        nodeSel.select("text").text(d => d.label);
+
+        let linkSel = linkG.selectAll(".link").data(links);
+        linkSel.enter().append("line").attr("class", "link");
+        linkSel.exit().remove();
+
+        simulation.nodes(nodes);
+        simulation.force("link").links(links);
+        simulation.alpha(0.3).restart();
     }
-    
-    function nodeClick(e, d) {
+
+    function ticked() {
+        linkG.selectAll(".link")
+            .attr("x1", d => d.source.x).attr("y1", d => d.source.y)
+            .attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+        nodeG.selectAll(".node").attr("transform", d => `translate(${d.x},${d.y})`);
+    }
+
+    function clickNode(e, d) {
         e.stopPropagation();
-        if(selectedNode && selectedNode !== d) {
-            if(!links.find(l => (l.source.id===selectedNode.id && l.target.id===d.id))) {
-                links.push({source:selectedNode.id, target:d.id});
-            }
-            selectedNode = d;
+        selectedNode = d;
+        showModal(d);
+    }
+
+    function openAddModal() {
+        selectedNode = null;
+        const modal = document.getElementById('modal');
+        const card = document.getElementById('modal-card');
+        
+        card.className = "card user"; 
+        document.getElementById('m-title').innerText = "Новая мысль";
+        document.getElementById('view-mode').style.display = 'none';
+        document.getElementById('edit-mode').style.display = 'block';
+        document.getElementById('node-input').value = "";
+        
+        document.getElementById('btn-del').style.display = 'none';
+        document.getElementById('btn-save').style.display = 'block';
+        
+        modal.classList.add('active');
+        document.getElementById('node-input').focus();
+    }
+
+    function showModal(d) {
+        const modal = document.getElementById('modal');
+        const card = document.getElementById('modal-card');
+        
+        if (d.type === 'janus') {
+            card.className = "card janus";
+            document.getElementById('m-title').innerText = d.label + " 🔒";
+            document.getElementById('btn-del').style.display = 'none'; 
         } else {
-            selectedNode = d;
+            card.className = "card user";
+            document.getElementById('m-title').innerText = d.label;
+            document.getElementById('btn-del').style.display = 'block'; 
         }
-        update();
+
+        document.getElementById('view-mode').style.display = 'block';
+        document.getElementById('edit-mode').style.display = 'none';
+        document.getElementById('btn-save').style.display = 'none';
+        document.getElementById('m-desc').innerText = d.description;
+
+        modal.classList.add('active');
     }
 
-    function deselect() { selectedNode = null; update(); }
-    function openModal() { 
-        document.getElementById('rename-modal').style.display='flex'; 
-        const inp = document.getElementById('rename-input');
-        inp.value = selectedNode.label; inp.focus();
-    }
-    function saveRename() {
-        if(selectedNode) selectedNode.label = document.getElementById('rename-input').value;
-        document.getElementById('rename-modal').style.display='none'; update();
-    }
-    function clearData() { localStorage.removeItem('inaihr_ngrok_v2'); location.reload(); }
-    
-    function alertMsg(txt) {
-        const el = document.getElementById('alert-msg');
-        el.innerText = txt; el.style.opacity=1;
-        setTimeout(()=>el.style.opacity=0, 2000);
+    function closeModal() {
+        document.getElementById('modal').classList.remove('active');
     }
 
-    function update() {
-        sim.nodes(nodes); sim.force("link").links(links); sim.alpha(1).restart();
-        localStorage.setItem('inaihr_ngrok_v2', JSON.stringify({nodes:nodes.map(n=>({id:n.id, label:n.label, x:n.x, y:n.y})), links:links.map(l=>({source:l.source.id, target:l.target.id}))}));
-        
-        const btnSynth = document.getElementById('btn-synth');
-        if(selectedNode) { btnMain.classList.add('mode-edit'); btnSynth.classList.add('active'); }
-        else { btnMain.classList.remove('mode-edit'); btnSynth.classList.remove('active'); }
-        render();
+    function saveNewNode() {
+        const txt = document.getElementById('node-input').value.trim();
+        if (!txt) return;
+
+        const newNode = {
+            id: Date.now(),
+            label: txt, 
+            type: 'user',
+            description: "Собственное воспоминание.",
+            x: window.innerWidth/2,
+            y: window.innerHeight/2
+        };
+        nodes.push(newNode);
+        updateGraph();
+        syncToServer();
+        closeModal();
     }
 
-    function render() {
-        let l = linkG.selectAll("line").data(links);
-        l.enter().append("line").attr("class", "link").merge(l)
-            .attr("x1", d=>d.source.x).attr("y1", d=>d.source.y).attr("x2", d=>d.target.x).attr("y2", d=>d.target.y);
-        l.exit().remove();
-
-        let n = nodeG.selectAll("g").data(nodes, d=>d.id);
-        const enter = n.enter().append("g").call(d3.drag().on("start", dragstart).on("drag", dragged).on("end", dragend)).on("click", nodeClick);
-        enter.append("circle").attr("class", "neuron-aura").attr("r", 35);
-        enter.append("circle").attr("class", "neuron-core").attr("r", 10);
-        enter.append("text").attr("dy", 25);
-        
-        const all = enter.merge(n);
-        all.attr("transform", d=>`translate(${d.x},${d.y})`)
-           .attr("class", d=>`node-group ${d===selectedNode?'selected':''}`);
-        all.select("text").text(d=>d.label);
-        n.exit().remove();
+    function deleteCurrentNode() {
+        if (!selectedNode || selectedNode.type === 'janus') return;
+        nodes = nodes.filter(n => n.id !== selectedNode.id);
+        links = links.filter(l => l.source.id !== selectedNode.id && l.target.id !== selectedNode.id);
+        updateGraph();
+        syncToServer();
+        closeModal();
     }
 
-    function dragstart(e,d) { if(!e.active) sim.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; }
-    function dragged(e,d) { d.fx=e.x; d.fy=e.y; }
-    function dragend(e,d) { if(!e.active) sim.alphaTarget(0); d.fx=null; d.fy=null; update(); }
+    function centerView() {
+        const transform = d3.zoomIdentity.translate(0, 0).scale(1);
+        svg.transition().duration(1000).call(svg.zoom().transform, transform);
+    }
 
-    update();
+    function dragstarted(e, d) { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; }
+    function dragged(e, d) { d.fx = e.x; d.fy = e.y; }
+    function dragended(e, d) { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }
+
 </script>
 </body>
 </html>
