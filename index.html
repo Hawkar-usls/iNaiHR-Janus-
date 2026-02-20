@@ -1,797 +1,157 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#05070a">
-    <title>HRAIN v3.2: JANUS LINK</title>
-    
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
-    
-    <style>
-        :root {
-            --bg-void: #05070a;
-            --c-life: #00ff9d;    /* Stability High */
-            --c-decay: #555;      /* Stability Low */
-            --c-chaos: #ff0055;   /* Conflict/Entropy */
-            --c-logic: #00d9ff;   /* Structure */
-            --c-accent: #d300ff;  /* Action */
-            
-            --f-mono: 'Orbitron', monospace;
-            --f-main: 'Rajdhani', sans-serif;
-        }
+// --- МОДУЛЬ ЗАГРУЗКИ И ОБЪЕДИНЕНИЯ ДАННЫХ (Loader) ---
 
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg-void); overflow: hidden; font-family: var(--f-main); color: #e0e0e0; user-select: none; }
+const REGISTRY_FILES = [
+  { version: 'v5.2', file: 'janus-meta-registry-v5.2.json', url: 'https://raw.githubusercontent.com/Hawkar-usls/janus-meta-registry/main/janus-meta-registry-v5.2.json' },
+  { version: 'v5.4', file: 'janus-meta-registry-v5.4.json', url: '...' },
+  { version: 'v5.5', file: 'janus-meta-registry-v5.5.json', url: '...' },
+  { version: 'v5.6', file: 'janus-meta-registry-v5.6.json', url: '...' },
+  { version: 'v5.7', file: 'janus-meta-registry-v5.7.json', url: '...' },
+  { version: 'v5.8', file: 'janus-meta-registry-v5.8.json', url: '...' },
+  { version: 'v5.9', file: 'janus-ai-integration-v5.9.json', url: '...' },
+  { version: 'v6.3', file: 'janus-meta-registry-v6.3.json', url: '...' },
+  { version: 'v7.2', file: 'janus-human-sync-neuro-v7.2.json', url: '...' },
+  { version: 'v7.3', file: 'janus-human-sync-global-v7.3.json', url: '...' },
+  // ... добавишь сюда v8.3 и другие
+];
 
-        /* --- UI OVERLAY --- */
-        .ui-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
-        .ui-element { pointer-events: auto; }
+// Хранилище объединённых данных
+let masterNodeMap = new Map(); // Ключ: уникальный ID (event_id или имя сущности)
+let masterLinks = [];
 
-        #hud-header {
-            position: absolute; top: 20px; left: 20px;
-            font-family: var(--f-mono);
-        }
-        #hud-title { font-size: 1.5rem; letter-spacing: 3px; color: rgba(255,255,255,0.2); text-shadow: 0 0 10px rgba(0,255,157,0.1); cursor: pointer; }
-        #hud-title span { color: var(--c-life); }
-        #hud-status { font-size: 0.7rem; color: var(--c-chaos); margin-top: 5px; opacity: 0; transition: opacity 0.5s; }
-
-        #controls {
-            position: absolute; top: 20px; right: 20px;
-            display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; max-width: 60%;
-        }
-
-        .btn {
-            background: rgba(10,15,20,0.8); border: 1px solid rgba(255,255,255,0.1);
-            color: #aaa; padding: 8px 14px; font-family: var(--f-mono); font-size: 0.7rem; letter-spacing: 1px;
-            cursor: pointer; transition: 0.2s; text-transform: uppercase;
-            backdrop-filter: blur(4px);
-        }
-        .btn:hover { border-color: var(--c-life); color: var(--c-life); box-shadow: 0 0 10px rgba(0,255,157,0.2); }
-        .btn.active { background: rgba(0,255,157,0.1); border-color: var(--c-life); color: var(--c-life); }
-        .btn.danger { border-color: var(--c-chaos); color: var(--c-chaos); }
-        .btn.danger:hover { background: rgba(255,0,85,0.1); box-shadow: 0 0 15px var(--c-chaos); }
-
-        /* MAIN ACTION BUTTON */
-        #fab {
-            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
-            width: 64px; height: 64px; border-radius: 50%;
-            background: radial-gradient(circle, #1a1f26, #000);
-            border: 1px solid rgba(255,255,255,0.2);
-            box-shadow: 0 0 20px rgba(0,0,0,0.8);
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: 0.3s;
-        }
-        #fab::after { content: '+'; font-size: 24px; color: var(--c-life); font-weight: 300; transition: 0.3s; }
-        #fab:active { transform: translateX(-50%) scale(0.9); border-color: var(--c-life); }
-        #fab.mode-edit::after { content: '✎'; color: #fff; }
-        #fab.mode-edit { border-color: var(--c-accent); box-shadow: 0 0 30px rgba(211,0,255,0.3); }
-
-        /* NAVIGATION */
-        #nav-stack {
-            position: absolute; top: 80px; left: 20px;
-            display: flex; flex-direction: column; gap: 5px;
-        }
-        .nav-crumb { font-size: 0.8rem; color: #666; cursor: pointer; transition: 0.2s; }
-        .nav-crumb:hover { color: var(--c-life); }
-        .nav-crumb::before { content: '>'; margin-right: 5px; color: #333; }
-
-        /* TOASTS */
-        #notifications {
-            position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%);
-            display: flex; flex-direction: column; gap: 8px; text-align: center;
-        }
-        .toast {
-            background: rgba(0,0,0,0.9); border: 1px solid #333; padding: 8px 16px;
-            font-size: 0.8rem; color: #ccc; opacity: 0; transform: translateY(10px); transition: 0.3s;
-            border-left: 3px solid var(--c-life);
-        }
-        .toast.visible { opacity: 1; transform: translateY(0); }
-        .toast.warn { border-left-color: var(--c-chaos); color: var(--c-chaos); }
-
-        /* --- CANVAS --- */
-        #viewport { width: 100%; height: 100%; }
-        
-        /* Node Styling */
-        .node-core { transition: fill 0.3s, stroke 0.3s, r 0.3s; }
-        .node-aura { fill: none; stroke-width: 1px; opacity: 0; transition: opacity 0.5s; }
-        .node-label { font-family: var(--f-main); font-size: 12px; font-weight: 700; text-anchor: middle; fill: #fff; text-shadow: 0 2px 4px #000; pointer-events: none; }
-        .node-emoji { font-size: 20px; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
-
-        /* Dynamic States */
-        .n-selected .node-core { stroke: #fff; stroke-width: 3px; filter: drop-shadow(0 0 8px var(--c-life)); }
-        .n-selected .node-aura { opacity: 0.6; animation: spin 10s linear infinite; stroke: var(--c-life); stroke-dasharray: 5 5; }
-        
-        .n-root .node-core { stroke-width: 4px; }
-        
-        /* Entropy States */
-        .n-decaying { opacity: 0.6; filter: grayscale(0.5); }
-        .n-dying { opacity: 0.2; filter: grayscale(1) blur(1px); }
-
-        /* Link Styling */
-        .link { fill: none; stroke-width: 2px; opacity: 0.4; transition: 0.3s; }
-        .link:hover { opacity: 1; stroke-width: 3px; }
-        .l-default { stroke: #fff; }
-        .l-cause { stroke: var(--c-logic); marker-end: url(#arrow-logic); }
-        .l-conflict { stroke: var(--c-chaos); stroke-dasharray: 4 4; }
-
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        /* Modal */
-        #input-modal { 
-            display: none; position: fixed; top:0; left:0; width:100%; height:100%; 
-            background: rgba(0,0,0,0.9); z-index: 100; 
-            flex-direction: column; align-items: center; justify-content: center; gap: 20px;
-        }
-        #node-input { 
-            background: transparent; border: none; border-bottom: 2px solid var(--c-life); 
-            font-size: 1.5rem; color: #fff; text-align: center; 
-            font-family: var(--f-mono); outline: none; width: 80%; max-width: 400px;
-        }
-        #btn-confirm-input {
-            width: 150px; font-size: 1rem; border-color: var(--c-life); color: var(--c-life);
-        }
-    </style>
-</head>
-<body>
-
-    <div class="ui-layer">
-        <div id="hud-header">
-            <div id="hud-title" onclick="App.chaos.triggerEvent()">HR<span>AIN</span>:JANUS</div>
-            <div id="hud-status">SYSTEM STABLE</div>
-        </div>
-
-        <div id="nav-stack" class="ui-element"></div>
-
-        <div id="controls" class="ui-element">
-            <button class="btn" onclick="App.physics.toggleGrid()">GRID</button>
-            <button class="btn" id="btn-auto" onclick="App.chaos.toggleAuto()">LIFE: OFF</button>
-            <button class="btn" onclick="App.synapse.synth(App.state.selected)">SYNTH</button>
-            <button class="btn" onclick="App.io.save()">SAVE</button>
-            <button class="btn" onclick="document.getElementById('file-in').click()">LOAD</button>
-            <button class="btn danger" onclick="App.state.deleteSelected()">PURGE</button>
-        </div>
-
-        <div id="notifications"></div>
-
-        <div id="fab" class="ui-element" onclick="App.ui.handleFab()"></div>
-        <button id="btn-dive" class="btn ui-element" style="position: absolute; bottom: 40px; left: 20px; display: none;" onclick="App.state.dive()">DIVE</button>
-        
-        <input type="file" id="file-in" style="display: none;" onchange="App.io.load(this)">
-    </div>
-
-    <div id="input-modal" class="ui-element">
-        <input type="text" id="node-input" autocomplete="off" placeholder="DEFINE ENTITY...">
-        <button id="btn-confirm-input" class="btn">CONFIRM</button>
-    </div>
-
-    <div id="viewport"></div>
-
-    <svg style="position: absolute; width:0; height:0;">
-        <defs>
-            <marker id="arrow-logic" viewBox="0 -5 10 10" refX="28" refY="0" markerWidth="6" markerHeight="6" orient="auto">
-                <path d="M0,-5L10,0L0,5" fill="var(--c-logic)"></path>
-            </marker>
-        </defs>
-    </svg>
-
-<script>
-/**
- * HRAIN v3.2: JANUS LINK
- * TARGET: QNAP DOCKER
- */
-
-// --- CONFIGURATION ---
-const CONFIG = {
-    // ВАЖНО: Адрес твоего QNAP. Убедись, что CORS настроен на сервере!
-    backendUrl: "http://192.168.1.92:5000", 
-    apiKey: "", // Оставь пустым, работаем через Janus
-    entropyRate: 0.05, 
-    maxStability: 100, 
-    gridSize: 50
-};
-
-// =============================================================================
-// MODULE 1: STATE (The Skeleton)
-// =============================================================================
-class StateManager {
-    constructor() {
-        this.nodes = [];
-        this.links = [];
-        this.contextStack = [];
-        this.selected = null;
-        this.rootId = null;
+async function loadAllRegistries(progressCallback) {
+  masterNodeMap.clear();
+  masterLinks = [];
+  
+  for (let i = 0; i < REGISTRY_FILES.length; i++) {
+    const reg = REGISTRY_FILES[i];
+    try {
+      const response = await fetch(reg.url);
+      const data = await response.json();
+      mergeRegistry(data, reg.version);
+      if (progressCallback) progressCallback(i + 1, REGISTRY_FILES.length);
+    } catch (e) {
+      console.error(`Failed to load ${reg.file}:`, e);
     }
-
-    addNode(label, type = 'default', x = 0, y = 0, parentId = null) {
-        const id = Date.now();
-        const node = {
-            id: id,
-            label: label,
-            type: type,
-            emoji: "💠",
-            x: x, y: y,
-            parentId: parentId || this.rootId,
-            stability: CONFIG.maxStability,
-            lastInteract: Date.now(),
-            data: {} 
-        };
-        this.nodes.push(node);
-        return node;
-    }
-
-    addLink(sourceId, targetId, type = 'default') {
-        if (this.links.some(l => (l.source.id === sourceId && l.target.id === targetId))) return;
-        this.links.push({ source: sourceId, target: targetId, type: type });
-    }
-
-    deleteSelected() {
-        if (!this.selected) return;
-        this.deleteNode(this.selected);
-    }
-
-    deleteNode(node) {
-        if (!node) return;
-        this.nodes = this.nodes.filter(n => n.id !== node.id);
-        this.links = this.links.filter(l => l.source.id !== node.id && l.target.id !== node.id);
-        if (this.selected === node) this.deselect();
-        App.visuals.update();
-    }
-
-    select(node) {
-        this.selected = node;
-        node.stability = CONFIG.maxStability;
-        node.lastInteract = Date.now();
-        App.ui.updateFab(true);
-    }
-
-    deselect() {
-        this.selected = null;
-        App.ui.updateFab(false);
-    }
-
-    getCurrentView() {
-        const visibleNodes = this.nodes.filter(n => n.parentId === this.rootId);
-        const nodeIds = new Set(visibleNodes.map(n => n.id));
-        const visibleLinks = this.links
-            .filter(l => {
-                const s = l.source.id || l.source;
-                const t = l.target.id || l.target;
-                return nodeIds.has(s) && nodeIds.has(t);
-            })
-            .map(l => ({
-                source: l.source.id || l.source,
-                target: l.target.id || l.target,
-                type: l.type
-            }));
-        
-        return { nodes: visibleNodes, links: visibleLinks };
-    }
-
-    dive() {
-        if (!this.selected) return;
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-        this.nodes.filter(n => n.parentId === this.selected.id).forEach(n => {
-            n.x = (width/2) + (Math.random()-0.5) * 100;
-            n.y = (height/2) + (Math.random()-0.5) * 100;
-            n.vx = 0; n.vy = 0;
-        });
-        this.contextStack.push(this.selected.id);
-        this.rootId = this.selected.id;
-        this.deselect();
-        App.visuals.update();
-        App.ui.renderBreadcrumbs();
-    }
-
-    ascend() {
-        if (this.contextStack.length === 0) return;
-        const oldRoot = this.nodes.find(n => n.id === this.rootId);
-        this.contextStack.pop();
-        this.rootId = this.contextStack.length > 0 ? this.contextStack[this.contextStack.length - 1] : null;
-        if (oldRoot) {
-            oldRoot.fx = null; oldRoot.fy = null;
-            oldRoot.vx += (Math.random()-0.5) * 5;
-            oldRoot.vy += (Math.random()-0.5) * 5;
-        }
-        App.visuals.update();
-        App.ui.renderBreadcrumbs();
-    }
+  }
+  
+  // Преобразуем Map в массив для D3
+  return {
+    nodes: Array.from(masterNodeMap.values()),
+    links: masterLinks
+  };
 }
 
-// =============================================================================
-// MODULE 2: PHYSICS & VISUALS
-// =============================================================================
-class VisualEngine {
-    constructor(containerId) {
-        this.width = window.innerWidth;
-        this.height = window.innerHeight;
-        this.svg = d3.select(containerId).append("svg").attr("width", "100%").attr("height", "100%");
-        this.g = this.svg.append("g");
-        
-        this.linkLayer = this.g.append("g").attr("class", "layer-links");
-        this.nodeLayer = this.g.append("g").attr("class", "layer-nodes");
-
-        this.zoom = d3.zoom().scaleExtent([0.1, 4]).on("zoom", (e) => {
-            this.g.attr("transform", e.transform);
-            App.physics.updateGrid(e.transform);
-        });
-        this.svg.call(this.zoom).on("dblclick.zoom", null);
-        
-        this.svg.on("click", (e) => {
-            if (e.target.tagName === 'svg') App.state.deselect();
-            App.visuals.update();
-        });
-
-        window.addEventListener('resize', () => {
-            this.width = window.innerWidth;
-            this.height = window.innerHeight;
-            App.physics.sim.force("center", d3.forceCenter(this.width / 2, this.height / 2).strength(0.05));
-            App.physics.sim.alpha(0.3).restart();
-        });
-    }
-
-    update() {
-        const data = App.state.getCurrentView();
-        const t = d3.transition().duration(300);
-
-        const links = this.linkLayer.selectAll(".link")
-            .data(data.links, d => [d.source.id||d.source, d.target.id||d.target].join("-"));
-        links.exit().transition(t).style("opacity", 0).remove();
-        const linksEnter = links.enter().append("path")
-            .attr("class", d => `link l-${d.type}`)
-            .attr("opacity", 0)
-            .on("click", (e, d) => App.ui.cycleLinkType(d));
-        linksEnter.transition(t).attr("opacity", 1);
-        links.attr("class", d => `link l-${d.type}`);
-
-        const nodes = this.nodeLayer.selectAll(".node-group")
-            .data(data.nodes, d => d.id);
-        nodes.exit().transition(t).style("opacity", 0).attr("transform", d => `translate(${d.x},${d.y}) scale(0)`).remove();
-        const nodesEnter = nodes.enter().append("g")
-            .attr("class", "node-group")
-            .call(d3.drag()
-                .on("start", (e,d) => App.physics.dragStart(e,d))
-                .on("drag", (e,d) => App.physics.dragged(e,d))
-                .on("end", (e,d) => App.physics.dragEnd(e,d))
-            )
-            .on("click", (e,d) => App.ui.handleNodeClick(e,d))
-            .on("dblclick", (e,d) => App.synapse.executeAction(d));
-
-        nodesEnter.append("circle").attr("class", "node-aura").attr("r", 45);
-        nodesEnter.append("circle").attr("class", "node-core").attr("r", 20)
-            .attr("fill", "#111").attr("stroke", "var(--c-life)");
-        nodesEnter.append("text").attr("class", "node-emoji").attr("dy", 1).text(d => d.emoji);
-        nodesEnter.append("text").attr("class", "node-label").attr("dy", 35).text(d => d.label);
-
-        const allNodes = nodesEnter.merge(nodes);
-        
-        allNodes.attr("class", d => {
-            const isSel = App.state.selected === d ? "n-selected" : "";
-            const isRoot = d.id === App.state.rootId ? "n-root" : "";
-            let decayClass = "";
-            if (d.stability < 30) decayClass = "n-dying";
-            else if (d.stability < 70) decayClass = "n-decaying";
-            return `node-group ${isSel} ${isRoot} ${decayClass}`;
-        });
-
-        allNodes.select(".node-core").style("stroke", d => {
-            if (d.type === 'danger') return "var(--c-chaos)";
-            if (d.type === 'warn') return "var(--c-decay)";
-            if (d.type === 'info') return "var(--c-logic)";
-            return "var(--c-life)";
-        });
-        
-        allNodes.select(".node-label").text(d => d.label);
-        allNodes.select(".node-emoji").text(d => d.emoji);
-
-        App.physics.updateData(data.nodes, data.links);
-        App.physics.sim.alpha(1).restart();
-        
-        this.renderedLinks = linksEnter.merge(links);
-        this.renderedNodes = allNodes;
-    }
-
-    tick() {
-        if (this.renderedLinks) {
-            this.renderedLinks.attr("d", d => {
-                const dx = d.target.x - d.source.x, dy = d.target.y - d.source.y;
-                const dr = Math.sqrt(dx * dx + dy * dy) * 2; 
-                return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+function mergeRegistry(data, versionTag) {
+  // --- Извлечение узлов из empirical_layer ---
+  if (data.collections) {
+    // Для старых версий (v5.x) с "collections"
+    Object.values(data.collections).forEach(collection => {
+      if (collection.sites) {
+        collection.sites.forEach(site => {
+          const nodeId = site.id || `${versionTag}-${site.name}-${Date.now()}`;
+          if (!masterNodeMap.has(nodeId)) {
+            masterNodeMap.set(nodeId, {
+              id: nodeId,
+              label: site.name,
+              type: site.content_matrix?.dominant_subjects?.[0]?.toLowerCase() || 'default',
+              emoji: getEmojiForType(site.content_matrix?.dominant_subjects?.[0]),
+              version: versionTag,
+              layer: 'empirical',
+              // Сохраняем исходные данные для всплывающих подсказок
+              sourceData: site
             });
-        }
-        if (this.renderedNodes) {
-            this.renderedNodes.attr("transform", d => `translate(${d.x},${d.y})`);
-        }
-    }
-}
-
-class PhysicsEngine {
-    constructor() {
-        this.sim = d3.forceSimulation()
-            .force("link", d3.forceLink().id(d => d.id).distance(150))
-            .force("charge", d3.forceManyBody().strength(-800))
-            .force("collide", d3.forceCollide(60).strength(0.5))
-            .force("center", d3.forceCenter(window.innerWidth / 2, window.innerHeight / 2).strength(0.02))
-            .on("tick", () => App.visuals.tick());
-    }
-
-    updateData(nodes, links) {
-        this.sim.nodes(nodes);
-        this.sim.force("link").links(links);
-        this.sim.force("charge").strength(d => d.type === 'danger' ? -1500 : -800); 
-        this.sim.force("link").distance(l => l.type === 'conflict' ? 300 : 150); 
-    }
-
-    updateGrid(transform) {
-        const sz = CONFIG.gridSize * transform.k;
-        if (document.getElementById('grid-bg')) {
-             document.getElementById('grid-bg').style.backgroundSize = `${sz}px ${sz}px`;
-             document.getElementById('grid-bg').style.backgroundPosition = `${transform.x}px ${transform.y}px`;
-        }
-    }
-
-    toggleGrid() { document.body.classList.toggle('grid-active'); }
-    dragStart(e, d) { if (!e.active) this.sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; }
-    dragged(e, d) { d.fx = e.x; d.fy = e.y; }
-    dragEnd(e, d) { if (!e.active) this.sim.alphaTarget(0); if (d.id !== App.state.rootId) { d.fx = null; d.fy = null; } }
-}
-
-// =============================================================================
-// MODULE 3: ENTROPY
-// =============================================================================
-class EntropyManager {
-    constructor() {
-        this.autoMode = false;
-        this.timer = null;
-        setInterval(() => this.heartbeat(), 5000);
-    }
-
-    toggleAuto() {
-        this.autoMode = !this.autoMode;
-        document.getElementById('btn-auto').innerText = this.autoMode ? "LIFE: ON" : "LIFE: OFF";
-        document.getElementById('btn-auto').classList.toggle('active', this.autoMode);
-        
-        if(this.autoMode) {
-            App.ui.toast("SYSTEM AWARENESS: ONLINE", "normal");
-            this.timer = setInterval(() => this.shadowStep(), 15000); 
-        } else {
-            clearInterval(this.timer);
-        }
-    }
-
-    heartbeat() {
-        let needsUpdate = false;
-        App.state.nodes.forEach(n => {
-            if (n.id === App.state.rootId) return; 
-            n.stability -= CONFIG.entropyRate * 50; 
-            
-            if (this.autoMode && Math.random() > 0.98) {
-                n.type = n.type === 'default' ? 'info' : 'default';
-                App.ui.toast(`MUTATION: ${n.label}`, "warn");
-                needsUpdate = true;
-            }
+          }
         });
-        if (needsUpdate || this.autoMode) App.visuals.update();
-    }
-
-    async shadowStep() {
-        const view = App.state.getCurrentView();
-        if (view.nodes.length === 0) return;
-        const target = view.nodes[Math.floor(Math.random() * view.nodes.length)];
-        
-        if (Math.random() > 0.7 && view.nodes.length > 2) {
-            const other = view.nodes[Math.floor(Math.random() * view.nodes.length)];
-            if (target !== other) {
-                App.state.addLink(target.id, other.id, 'default');
-                App.ui.toast("SYNAPSE FORMED", "normal");
-                App.visuals.update();
-                return;
-            }
-        }
-
-        App.ui.toast("JANUS IS THINKING...", "warn");
-        const prompt = `Role: Entropy. Context: Node "${target.label}". Task: Generate a single short, cryptic counter-point or danger associated with this. JSON: {"label": "...", "emoji": "⚠️"}`;
-        
-        const data = await App.synapse.askJanus(prompt);
-        if (data) {
-            const conflictNode = App.state.addNode(data.label, 'danger', target.x + 50, target.y + 50);
-            conflictNode.emoji = data.emoji || "⚠️";
-            App.state.addLink(target.id, conflictNode.id, 'conflict');
-            App.visuals.update();
-            App.ui.toast("ANOMALY DETECTED", "warn");
-        }
-    }
-    
-    triggerEvent() { this.shadowStep(); }
-}
-
-// =============================================================================
-// MODULE 4: SYNAPSE (СВЯЗЬ С QNAP)
-// =============================================================================
-class Synapse {
-    async askJanus(text) {
-        try {
-            let responseData;
-            
-            // Если есть API Key - используем Google напрямую (резерв)
-            if (CONFIG.apiKey) {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${CONFIG.apiKey}`;
-                const res = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ contents: [{ parts: [{ text: text }] }] }) });
-                if(!res.ok) throw new Error("API Error");
-                responseData = await res.json();
-                
-                const raw = responseData.candidates[0].content.parts[0].text;
-                try {
-                    const jsonStr = raw.substring(raw.indexOf('{'), raw.lastIndexOf('}')+1);
-                    return JSON.parse(jsonStr);
-                } catch (e) { return { text: raw }; }
-            
-            // ИНАЧЕ - используем JANUS на QNAP
-            } else if (CONFIG.backendUrl) {
-                // ВАЖНО: Новый путь к API
-                const url = `${CONFIG.backendUrl}/api/janus/action`;
-                
-                const res = await fetch(url, { 
-                    method: 'POST', 
-                    headers: {'Content-Type': 'application/json'}, 
-                    body: JSON.stringify({ text: text }) // Janus принимает поле 'text' или 'prompt'
-                });
-                
-                if(!res.ok) throw new Error("Backend Error: " + res.status);
-                responseData = await res.json();
-                
-                // Janus сразу возвращает готовый JSON или текст в поле result
-                const raw = responseData.result;
-                 try {
-                    // Если Janus вернул строку с JSON внутри markdown
-                    if (typeof raw === 'string') {
-                        const jsonStr = raw.replace(/```json/g, '').replace(/```/g, '').trim();
-                         // Пытаемся найти фигурные скобки, если там есть мусор
-                        const start = jsonStr.indexOf('{');
-                        const end = jsonStr.lastIndexOf('}');
-                        if (start !== -1 && end !== -1) {
-                             return JSON.parse(jsonStr.substring(start, end+1));
-                        }
-                        return JSON.parse(jsonStr);
-                    }
-                    return raw; // Если уже объект
-                } catch (e) {
-                    return { text: raw, label: "Thought", emoji: "💭" }; // Фоллбэк, если это просто текст
-                }
-
-            } else {
-                throw new Error("No Connection Configured");
-            }
-
-        } catch (e) {
-            console.error(e);
-            App.ui.toast("NEURAL LINK SEVERED: " + e.message, "warn");
-            return null;
-        }
-    }
-
-    async synth(node) {
-        if (!node) { App.ui.toast("SELECT TARGET FIRST", "warn"); return; }
-        App.ui.toast("SYNTHESIZING...", "normal");
-        const children = App.state.nodes.filter(n => n.parentId === node.id).map(n => n.label).join(", ");
-        const prompt = `Context: Node "${node.label}". Children: [${children}]. Task: Expand this concept. 1. Refine Parent Emoji/Type. 2. Suggest 3 NEW related sub-nodes. OUTPUT JSON ONLY: {"parentEmoji": "x", "parentType": "default/info/warn", "newNodes": [{"label": "...", "type": "..."}]}`;
-
-        const data = await this.askJanus(prompt);
-        if (data) {
-            if (data.parentEmoji) node.emoji = data.parentEmoji;
-            if (data.parentType) node.type = data.parentType;
-            if (data.newNodes) {
-                data.newNodes.forEach((n, i) => {
-                    const child = App.state.addNode(n.label, n.type || 'default', node.x + (Math.random()-0.5)*100, node.y + (Math.random()-0.5)*100);
-                    App.state.addLink(node.id, child.id, 'cause');
-                });
-            }
-            App.visuals.update();
-            App.ui.toast("SYNTHESIS COMPLETE", "normal");
-        }
-    }
-
-    async executeAction(node) {
-        if (!node.label.startsWith('>')) return; 
-        App.ui.toast(`EXECUTING: ${node.label}`, "normal");
-        const prompt = `Execute Action: "${node.label}". Generate a Result Node Label (short) and Type. OUTPUT JSON ONLY: {"result": "...", "type": "info/warn/danger", "emoji": "..."}`;
-        const data = await this.askJanus(prompt);
-        if (data) {
-            const resNode = App.state.addNode(data.result || data.text, data.type || 'info', node.x + 100, node.y);
-            resNode.emoji = data.emoji || "✅";
-            App.state.addLink(node.id, resNode.id, 'cause');
-            App.visuals.update();
-        }
-    }
-}
-
-// =============================================================================
-// MODULE 5: IO & UI
-// =============================================================================
-class Interface {
-    constructor() {
-        this.inputModal = document.getElementById('input-modal');
-        this.inputField = document.getElementById('node-input');
-        this.confirmBtn = document.getElementById('btn-confirm-input');
-        
-        // Setup persistent cleanup references
-        this._handleInputKey = null;
-        this._handleInputClick = null;
-    }
-
-    handleFab() {
-        if (App.state.selected) {
-            // Edit Mode
-            this.openInput(App.state.selected.label, (val) => {
-                if(!val) return;
-                App.state.selected.label = val;
-                App.visuals.update();
-                // AI Classify in background
-                App.synapse.askJanus(`Classify "${val}". JSON ONLY: {"emoji": ".", "type": "default/danger"}`)
-                    .then(d => { if(d) { App.state.selected.emoji = d.emoji; App.state.selected.type = d.type; App.visuals.update(); }});
-            });
-        } else {
-            // Create Mode
-            this.openInput("", (val) => {
-                if(!val) return;
-                const center = App.state.selected ? App.state.selected : {x: window.innerWidth/2, y: window.innerHeight/2};
-                const n = App.state.addNode(val, 'default', center.x + (Math.random()-0.5)*50, center.y + (Math.random()-0.5)*50);
-                
-                if (App.state.selected) App.state.addLink(App.state.selected.id, n.id, 'default');
-                else if (App.state.rootId) App.state.addLink(App.state.rootId, n.id, 'default');
-                
-                App.visuals.update();
-            });
-        }
-    }
-
-    openInput(currentVal, callback) {
-        this.inputModal.style.display = 'flex';
-        this.inputField.value = currentVal;
-        this.inputField.focus();
-
-        const finalize = () => {
-            const val = this.inputField.value.trim();
-            if (val) callback(val);
-            close();
-        };
-
-        const close = () => {
-            this.inputModal.style.display = 'none';
-            if(this._handleInputKey) this.inputField.removeEventListener('keydown', this._handleInputKey);
-            if(this._handleInputClick) this.confirmBtn.removeEventListener('click', this._handleInputClick);
-        };
-
-        this._handleInputKey = (e) => {
-            if (e.key === 'Enter') finalize();
-            if (e.key === 'Escape') close();
-        };
-        this._handleInputClick = (e) => {
-            finalize();
-        };
-
-        this.inputField.addEventListener('keydown', this._handleInputKey);
-        this.confirmBtn.addEventListener('click', this._handleInputClick);
-    }
-
-    handleNodeClick(e, d) {
-        e.stopPropagation();
-        App.state.select(d);
-        App.visuals.update();
-    }
-
-    cycleLinkType(d) {
-        const types = ['default', 'cause', 'conflict'];
-        const link = App.state.links.find(l => 
-            (l.source === d.source.id && l.target === d.target.id) ||
-            (l.source.id === d.source.id && l.target.id === d.target.id)
-        );
-        if (link) {
-            let idx = types.indexOf(link.type);
-            link.type = types[(idx + 1) % types.length];
-            App.visuals.update();
-        }
-    }
-
-    updateFab(isEdit) {
-        const fab = document.getElementById('fab');
-        if (isEdit) { fab.classList.add('mode-edit'); document.getElementById('btn-dive').style.display = 'block'; }
-        else { fab.classList.remove('mode-edit'); document.getElementById('btn-dive').style.display = 'none'; }
-    }
-
-    renderBreadcrumbs() {
-        const container = document.getElementById('nav-stack');
-        container.innerHTML = '';
-        App.state.contextStack.forEach((id, index) => {
-            const n = App.state.nodes.find(x => x.id === id);
-            const el = document.createElement('div');
-            el.className = 'nav-crumb';
-            el.innerText = n ? n.label : 'Unknown';
-            el.onclick = () => {
-                while (App.state.contextStack.length > index + 1) App.state.ascend();
-            };
-            container.appendChild(el);
+      }
+    });
+  }
+  
+  // Для новых версий (v6.3+) с empirical_layer
+  if (data.empirical_layer) {
+    data.empirical_layer.forEach(item => {
+      const nodeId = item.event_id;
+      if (!masterNodeMap.has(nodeId)) {
+        masterNodeMap.set(nodeId, {
+          id: nodeId,
+          label: item.name || item.event_id,
+          type: item.verification_status === 'confirmed_official' ? 'info' : 
+                (item.verification_status === 'confirmed_military' ? 'warn' : 'default'),
+          emoji: getEmojiForEvent(item),
+          version: versionTag,
+          layer: 'empirical',
+          sourceData: item
         });
-    }
+      }
+    });
+  }
 
-    toast(text, type="normal") {
-        const el = document.createElement('div');
-        el.className = `toast ${type}`;
-        el.innerText = text;
-        document.getElementById('notifications').appendChild(el);
-        requestAnimationFrame(() => el.classList.add('visible'));
-        setTimeout(() => { el.classList.remove('visible'); setTimeout(() => el.remove(), 300); }, 3000);
-    }
+  // --- Извлечение узлов из hypothesis_layer (для новых версий) ---
+  if (data.hypothesis_layer) {
+    data.hypothesis_layer.forEach(hyp => {
+      // Каждая гипотеза может стать узлом
+      const nodeId = hyp.event_id;
+      if (!masterNodeMap.has(nodeId)) {
+        masterNodeMap.set(nodeId, {
+          id: nodeId,
+          label: hyp.description?.substring(0, 50) + '...' || hyp.event_id,
+          type: 'info',
+          emoji: '🧠',
+          version: versionTag,
+          layer: 'hypothesis',
+          sourceData: hyp
+        });
+      }
+      
+      // Добавляем связи между гипотезой и эмпирическими кейсами, если они есть
+      if (hyp.connections_to_other_registries) {
+        hyp.connections_to_other_registries.forEach(conn => {
+          masterLinks.push({
+            source: nodeId,
+            target: conn, // ID целевого узла (должен быть в masterNodeMap)
+            type: 'hypothesis'
+          });
+        });
+      }
+    });
+  }
+
+  // --- Извлечение связей из correlation_analysis (для новых версий) ---
+  if (data.correlation_analysis && data.correlation_analysis.matrix) {
+    data.correlation_analysis.matrix.forEach(corr => {
+      masterLinks.push({
+        source: corr.source_id,
+        target: corr.target_id,
+        type: corr.type || 'correlation',
+        strength: corr.strength || 0.5
+      });
+    });
+  }
+
+  // --- Извлечение связей из meta_links (для старых версий) ---
+  if (data.meta_links) {
+    Object.values(data.meta_links).forEach(linkArray => {
+      linkArray.forEach(link => {
+        masterLinks.push({
+          source: link.source,
+          target: link.target,
+          type: 'meta'
+        });
+      });
+    });
+  }
 }
 
-class IOManager {
-    save() {
-        const data = {
-            nodes: App.state.nodes,
-            links: App.state.links 
-        };
-        localStorage.setItem('hrain_janus_link', JSON.stringify(data));
-        App.ui.toast("MEMORY SAVED");
-    }
-
-    load(input) {
-        const file = input.files[0];
-        if(!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const d = JSON.parse(e.target.result);
-                App.state.nodes = d.nodes || [];
-                App.state.links = d.links || [];
-                App.state.links = App.state.links.map(l => ({
-                    source: l.source.id || l.source,
-                    target: l.target.id || l.target,
-                    type: l.type || 'default'
-                }));
-                App.state.rootId = null;
-                App.state.contextStack = [];
-                App.visuals.update();
-                App.ui.toast("MEMORY LOADED");
-            } catch(e) { App.ui.toast("CORRUPT DATA", "warn"); }
-        };
-        reader.readAsText(file);
-        input.value = '';
-    }
+// Функция для выбора эмодзи
+function getEmojiForEvent(item) {
+  if (item.event_type?.includes('military')) return '⚔️';
+  if (item.event_type?.includes('medical')) return '🏥';
+  if (item.event_type?.includes('volcanic')) return '🌋';
+  if (item.event_type?.includes('neural')) return '🧠';
+  return '📄';
 }
 
-// =============================================================================
-// KERNEL
-// =============================================================================
-const App = {
-    state: new StateManager(),
-    physics: new PhysicsEngine(),
-    visuals: null, 
-    synapse: new Synapse(),
-    chaos: new EntropyManager(),
-    ui: new Interface(),
-    io: new IOManager(),
-
-    boot: () => {
-        App.visuals = new VisualEngine("#viewport");
-        const saved = localStorage.getItem('hrain_janus_link') || localStorage.getItem('hrain_genesis');
-        if (saved) {
-            try {
-                const d = JSON.parse(saved);
-                App.state.nodes = d.nodes;
-                App.state.links = d.links.map(l => ({source: l.source.id||l.source, target: l.target.id||l.target, type: l.type||'default'}));
-            } catch(e) {}
-        }
-        if (App.state.nodes.length === 0) {
-            App.state.addNode("JANUS CORE", "default", window.innerWidth/2, window.innerHeight/2);
-        }
-        App.visuals.update();
-        App.ui.toast("PROTOCOL: JANUS LINK ESTABLISHED");
-    }
-};
-
-window.onload = App.boot;
-
-</script>
-</body>
-</html>
+function getEmojiForType(type) {
+  if (type?.toLowerCase().includes('uap')) return '🛸';
+  if (type?.toLowerCase().includes('nuclear')) return '☢️';
+  return '🔹';
+}
